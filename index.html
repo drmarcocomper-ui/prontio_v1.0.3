@@ -2,25 +2,213 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>PRONTIO - Teste de Conexão</title>
+  <title>PRONTIO - Lista de Atendimento</title>
+  <link rel="stylesheet" href="assets/css/layout.css">
+  <style>
+    /* Estilos específicos da Lista de Atendimento (index) */
+
+    .lista-atendimento-header-text {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .tabela-atendimento-wrapper {
+      overflow-x: auto;
+    }
+
+    /* Reaproveita o visual da tabela da agenda */
+    .tabela-atendimento {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 650px;
+      background: #ffffff;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .tabela-atendimento th,
+    .tabela-atendimento td {
+      border: 1px solid #dde3ea;
+      padding: 6px 8px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .tabela-atendimento thead {
+      background: #f1f4f8;
+    }
+
+    .tabela-atendimento tbody tr:nth-child(even) {
+      background: #fafbfc;
+    }
+
+    .linha-vazia {
+      text-align: center;
+      color: #777;
+      font-style: italic;
+    }
+
+    .col-data {
+      width: 90px;
+      white-space: nowrap;
+    }
+
+    .col-hora {
+      width: 70px;
+      white-space: nowrap;
+    }
+
+    .col-paciente {
+      min-width: 200px;
+    }
+
+    .col-tipo {
+      width: 120px;
+    }
+
+    .col-status {
+      width: 110px;
+    }
+
+    .badge-status {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-agendado {
+      background: #e3f2fd;
+      color: #0d47a1;
+    }
+
+    .badge-confirmado {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .badge-cancelado,
+    .badge-faltou {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .badge-outro {
+      background: #eeeeee;
+      color: #555555;
+    }
+
+    .lista-atendimento-info {
+      font-size: 12px;
+      color: #777;
+      margin-top: 4px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Teste de Conexão com Backend (POST)</h1>
+  <div class="app-shell">
+    <!-- SIDEBAR / MENU LATERAL -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo">PRONTIO</div>
+        <div class="app-version">v0.1 - Dr. Marco Antônio Comper</div>
+      </div>
 
-  <button id="btnTestar">Testar API (POST)</button>
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link active">Início</a>
+        <a href="pacientes.html" class="nav-link">Pacientes</a>
+        <a href="agenda.html" class="nav-link">Agenda</a>
+        <a href="prontuario.html" class="nav-link">Prontuário</a>
+      </nav>
 
-  <pre id="resultado"></pre>
+      <div class="sidebar-footer">
+        <a href="configuracoes.html" class="nav-link">Configurações</a>
+        <div style="font-size: 11px; opacity: 0.9; margin-top: 6px;">
+          &copy; <span id="anoAtualSidebar"></span> PRONTIO
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="main-area">
+      <!-- TOPO -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1>Lista de Atendimento</h1>
+          <p>Pacientes agendados do dia de hoje para frente</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="infoDataHoje"></span>
+        </div>
+      </header>
+
+      <!-- CONTEÚDO -->
+      <main class="content">
+        <!-- MENSAGEM GLOBAL DA LISTA -->
+        <div id="mensagemListaAtendimento" class="mensagem mensagem-info" style="display:none;">
+          <!-- Preenchido via JS -->
+        </div>
+
+        <!-- CARD: LISTA DE ATENDIMENTO -->
+        <section class="card">
+          <div class="card-header card-header-lista">
+            <div>
+              <h2>Atendimentos a partir de hoje</h2>
+              <div class="lista-atendimento-header-text">
+                Exibe todos os agendamentos do dia atual em diante, ordenados por data e hora.
+              </div>
+            </div>
+            <div>
+              <button id="btnRecarregarLista" class="btn secundario">
+                Recarregar lista
+              </button>
+              <div class="lista-atendimento-info" id="infoUltimaAtualizacao"></div>
+            </div>
+          </div>
+
+          <div class="tabela-atendimento-wrapper">
+            <table class="tabela-atendimento">
+              <thead>
+                <tr>
+                  <th class="col-data">Data</th>
+                  <th class="col-hora">Hora</th>
+                  <th class="col-paciente">Paciente</th>
+                  <th class="col-tipo">Tipo</th>
+                  <th class="col-status">Status</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaAtendimentoBody">
+                <!-- Linhas preenchidas via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
 
   <script src="assets/js/api.js"></script>
+  <script src="assets/js/index.js"></script>
   <script>
-    document.getElementById("btnTestar").addEventListener("click", async () => {
-      const resposta = await callApi({
-        action: "ping",
-        payload: { mensagem: "Olá backend!" }
-      });
+    // Preenche ano atual no rodapé da sidebar e data de hoje no topo
+    (function () {
+      const spanAno = document.getElementById("anoAtualSidebar");
+      if (spanAno) {
+        spanAno.textContent = new Date().getFullYear();
+      }
 
-      document.getElementById("resultado").textContent = JSON.stringify(resposta, null, 2);
-    });
+      const infoDataHoje = document.getElementById("infoDataHoje");
+      if (infoDataHoje) {
+        const hoje = new Date();
+        const dd = String(hoje.getDate()).padStart(2, "0");
+        const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+        const yyyy = hoje.getFullYear();
+        infoDataHoje.textContent = `Hoje: ${dd}/${mm}/${yyyy}`;
+      }
+    })();
   </script>
 </body>
 </html>

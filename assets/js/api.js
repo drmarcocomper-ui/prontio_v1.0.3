@@ -14,7 +14,7 @@
 // ===============================
 // Caso gere uma nova versão publicada do Web App, substitua aqui.
 const PRONTIO_API_URL =
-  "https://script.google.com/macros/s/AKfycbxJTuBlia16m4YTFTnyBtn8SjaMsYECFKsCG07lx12nktddEYD1jqgh6eGqkNrOp4tK6w/exec";
+  "https://script.google.com/macros/s/AKfycbxKgOmkVgVRKjmZO7JPGOGEVhDuyLf3_SZ3klBdVJnRb4qEhPFrJJmkK_eaSn_DsmSVTQ/exec";
 
 /**
  * Chama a API do PRONTIO (Google Apps Script)
