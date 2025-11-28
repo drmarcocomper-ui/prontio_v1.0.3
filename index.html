@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>PRONTIO - Teste de Conexão</title>
+</head>
+<body>
+  <h1>Teste de Conexão com Backend (POST)</h1>
+
+  <button id="btnTestar">Testar API (POST)</button>
+
+  <pre id="resultado"></pre>
+
+  <script src="assets/js/api.js"></script>
+  <script>
+    document.getElementById("btnTestar").addEventListener("click", async () => {
+      const resposta = await callApi({
+        action: "ping",
+        payload: { mensagem: "Olá backend!" }
+      });
+
+      document.getElementById("resultado").textContent = JSON.stringify(resposta, null, 2);
+    });
+  </script>
+</body>
+</html>

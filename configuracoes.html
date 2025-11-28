@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>PRONTIO - Configurações</title>
+  <link rel="stylesheet" href="assets/css/layout.css">
+
+  <style>
+    /* Estilos específicos da página de Configurações */
+
+    .form-config-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 12px 20px;
+    }
+
+    .form-config-grid .col-span-2 {
+      grid-column: span 2;
+    }
+
+    .campo-label {
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 4px;
+      display: block;
+      color: #444;
+    }
+
+    .campo-controle input,
+    .campo-controle textarea,
+    .campo-controle select {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 14px;
+    }
+
+    .campo-ajuda {
+      font-size: 11px;
+      color: #777;
+      margin-top: 2px;
+    }
+
+    .secao-config-titulo {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+
+    .acoes-config {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .grupo-radio-inline {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 13px;
+    }
+
+    .grupo-radio-inline label {
+      font-weight: normal;
+    }
+
+    @media (max-width: 800px) {
+      .form-config-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-config-grid .col-span-2 {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- SIDEBAR / MENU LATERAL -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo">PRONTIO</div>
+        <div class="app-version">v0.1 - Dr. Marco Antônio Comper</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link">Início</a>
+        <a href="pacientes.html" class="nav-link">Pacientes</a>
+        <a href="agenda.html" class="nav-link">Agenda</a>
+        <a href="prontuario.html" class="nav-link">Prontuário</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="configuracoes.html" class="nav-link active">Configurações</a>
+        <div style="font-size: 11px; opacity: 0.9; margin-top: 6px;">
+          &copy; <span id="anoAtualSidebar"></span> PRONTIO
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="main-area">
+      <!-- TOPO -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1>Configurações</h1>
+          <p>Dados do médico, clínica e preferências da agenda</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="infoDataHoje"></span>
+        </div>
+      </header>
+
+      <!-- CONTEÚDO -->
+      <main class="content">
+        <!-- MENSAGEM GLOBAL -->
+        <div id="mensagemConfig" class="mensagem mensagem-info" style="display:none;">
+          <!-- Preenchido via JS -->
+        </div>
+
+        <!-- FORMULÁRIO PRINCIPAL -->
+        <form id="formConfiguracoes">
+          <!-- CARD: DADOS DO MÉDICO -->
+          <section class="card">
+            <div class="card-header">
+              <h2 class="secao-config-titulo">Dados do médico</h2>
+            </div>
+
+            <div class="form-config-grid">
+              <div class="campo-controle col-span-2">
+                <label for="medicoNomeCompleto" class="campo-label">Nome completo *</label>
+                <input type="text" id="medicoNomeCompleto" required>
+                <div class="campo-ajuda">Será exibido nos documentos (receitas, laudos, atestados).</div>
+              </div>
+
+              <div class="campo-controle">
+                <label for="medicoCRM" class="campo-label">CRM *</label>
+                <input type="text" id="medicoCRM" placeholder="CRM 000000 / UF" required>
+              </div>
+
+              <div class="campo-controle">
+                <label for="medicoEspecialidade" class="campo-label">Especialidade</label>
+                <input type="text" id="medicoEspecialidade" placeholder="Ex.: Ortopedia, Psiquiatria">
+              </div>
+            </div>
+          </section>
+
+          <!-- CARD: DADOS DA CLÍNICA -->
+          <section class="card">
+            <div class="card-header">
+              <h2 class="secao-config-titulo">Dados da clínica / consultório</h2>
+            </div>
+
+            <div class="form-config-grid">
+              <div class="campo-controle col-span-2">
+                <label for="clinicaNome" class="campo-label">Nome da clínica / consultório</label>
+                <input type="text" id="clinicaNome" placeholder="Nome fantasia ou razão social">
+              </div>
+
+              <div class="campo-controle col-span-2">
+                <label for="clinicaEndereco" class="campo-label">Endereço</label>
+                <textarea id="clinicaEndereco" rows="2" placeholder="Rua, número, complemento, bairro, cidade - UF"></textarea>
+              </div>
+
+              <div class="campo-controle">
+                <label for="clinicaTelefone" class="campo-label">Telefone / WhatsApp</label>
+                <input type="tel" id="clinicaTelefone">
+              </div>
+
+              <div class="campo-controle">
+                <label for="clinicaEmail" class="campo-label">E-mail</label>
+                <input type="email" id="clinicaEmail">
+              </div>
+            </div>
+          </section>
+
+          <!-- CARD: PREFERÊNCIAS DA AGENDA -->
+          <section class="card">
+            <div class="card-header">
+              <h2 class="secao-config-titulo">Preferências da agenda</h2>
+            </div>
+
+            <div class="form-config-grid">
+              <div class="campo-controle">
+                <label for="agendaHoraInicioPadrao" class="campo-label">Horário inicial padrão</label>
+                <input type="time" id="agendaHoraInicioPadrao">
+                <div class="campo-ajuda">Ex.: 08:00</div>
+              </div>
+
+              <div class="campo-controle">
+                <label for="agendaHoraFimPadrao" class="campo-label">Horário final padrão</label>
+                <input type="time" id="agendaHoraFimPadrao">
+                <div class="campo-ajuda">Ex.: 18:00</div>
+              </div>
+
+              <div class="campo-controle">
+                <label for="agendaIntervaloMinutos" class="campo-label">Duração padrão da consulta (min)</label>
+                <input type="number" id="agendaIntervaloMinutos" min="5" step="5" placeholder="30">
+              </div>
+
+              <div class="campo-controle col-span-2">
+                <label class="campo-label">Dias da semana ativos</label>
+                <div class="grupo-radio-inline">
+                  <label><input type="checkbox" class="chk-dia-ativo" value="SEG"> Seg</label>
+                  <label><input type="checkbox" class="chk-dia-ativo" value="TER"> Ter</label>
+                  <label><input type="checkbox" class="chk-dia-ativo" value="QUA"> Qua</label>
+                  <label><input type="checkbox" class="chk-dia-ativo" value="QUI"> Qui</label>
+                  <label><input type="checkbox" class="chk-dia-ativo" value="SEX"> Sex</label>
+                  <label><input type="checkbox" class="chk-dia-ativo" value="SAB"> Sáb</label>
+                  <label><input type="checkbox" class="chk-dia-ativo" value="DOM"> Dom</label>
+                </div>
+                <div class="campo-ajuda">
+                  Usado futuramente para agenda semanal / bloqueio automático de dias não atendidos.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- AÇÕES GERAIS -->
+          <section class="card">
+            <div class="acoes-config">
+              <button type="submit" class="btn primario">Salvar configurações</button>
+              <button type="button" id="btnRecarregarConfig" class="btn secundario">
+                Recarregar do servidor
+              </button>
+            </div>
+          </section>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/configuracoes.js"></script>
+  <script>
+    // Preenche ano atual e data de hoje no topo
+    (function () {
+      const spanAno = document.getElementById("anoAtualSidebar");
+      if (spanAno) {
+        spanAno.textContent = new Date().getFullYear();
+      }
+
+      const infoDataHoje = document.getElementById("infoDataHoje");
+      if (infoDataHoje) {
+        const hoje = new Date();
+        const dd = String(hoje.getDate()).padStart(2, "0");
+        const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+        const yyyy = hoje.getFullYear();
+        infoDataHoje.textContent = `Hoje: ${dd}/${mm}/${yyyy}`;
+      }
+    })();
+  </script>
+</body>
+</html>

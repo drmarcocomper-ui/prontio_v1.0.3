@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>PRONTIO - Receita do Paciente</title>
+  <link rel="stylesheet" href="assets/css/layout.css">
+
+  <style>
+    /* Estilos específicos da página de Receita */
+
+    .info-paciente-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(160px, 1fr));
+      gap: 6px 18px;
+      font-size: 13px;
+    }
+
+    .info-paciente-label {
+      font-weight: bold;
+      color: #555;
+    }
+
+    .info-paciente-valor {
+      color: #111;
+    }
+
+    .form-receita-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .campo-label {
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 4px;
+      display: block;
+      color: #444;
+    }
+
+    .campo-controle textarea,
+    .campo-controle input {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .campo-ajuda {
+      font-size: 11px;
+      color: #777;
+      margin-top: 2px;
+    }
+
+    .acoes-receita-form {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tabela-receita-wrapper {
+      overflow-x: auto;
+    }
+
+    .tabela-receitas {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 700px;
+      background: #ffffff;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .tabela-receitas th,
+    .tabela-receitas td {
+      border: 1px solid #dde3ea;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    .tabela-receitas thead {
+      background: #f1f4f8;
+    }
+
+    .tabela-receitas tbody tr:nth-child(even) {
+      background: #fafbfc;
+    }
+
+    .col-data-receita {
+      width: 140px;
+      white-space: nowrap;
+    }
+
+    .col-acoes-receita {
+      width: 150px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .acoes-receita-lista {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .acoes-receita-lista .btn {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .texto-medicamentos-preview {
+      white-space: pre-wrap;
+    }
+
+    .texto-obs-preview {
+      white-space: pre-wrap;
+      font-size: 12px;
+      color: #444;
+    }
+
+    /* Bloco de sugestões de medicamentos */
+
+    .medicamentos-card {
+      margin-top: 10px;
+      border-top: 1px solid #dde3ea;
+      padding-top: 12px;
+    }
+
+    .medicamentos-grid {
+      display: grid;
+      grid-template-columns: minmax(200px, 1fr);
+      gap: 8px;
+    }
+
+    .tabela-medicamentos-wrapper {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid #dde3ea;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+
+    .tabela-medicamentos {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .tabela-medicamentos th,
+    .tabela-medicamentos td {
+      border-bottom: 1px solid #e0e0e0;
+      padding: 4px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .tabela-medicamentos thead {
+      background: #e9f2ff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .col-med-acoes {
+      width: 80px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .filtro-medicamento {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .filtro-medicamento input {
+      flex: 1;
+      min-width: 160px;
+      padding: 4px 6px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 800px) {
+      .info-paciente-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- SIDEBAR / MENU LATERAL -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo">PRONTIO</div>
+        <div class="app-version">v0.1 - Dr. Marco Antônio Comper</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link">Início</a>
+        <a href="pacientes.html" class="nav-link">Pacientes</a>
+        <a href="agenda.html" class="nav-link">Agenda</a>
+        <a href="prontuario.html" class="nav-link active">Prontuário</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="configuracoes.html" class="nav-link">Configurações</a>
+        <div style="font-size: 11px; opacity: 0.9; margin-top: 6px;">
+          &copy; <span id="anoAtualSidebar"></span> PRONTIO
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="main-area">
+      <!-- TOPO -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1>Receita do Paciente</h1>
+          <p>Registro e impressão de prescrições médicas</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="infoDataHoje"></span>
+        </div>
+      </header>
+
+      <!-- CONTEÚDO -->
+      <main class="content">
+        <!-- LINKS DE CONTEXTO / ATALHOS -->
+        <section class="card" style="margin-bottom: 16px;">
+          <div class="card-header">
+            <h2 style="margin-bottom: 6px;">Navegação rápida</h2>
+          </div>
+          <div class="resumo-acoes">
+            <a href="prontuario.html" class="btn secundario">← Voltar para Prontuário</a>
+            <a href="evolucao.html" class="btn secundario">Evolução clínica</a>
+            <a href="agenda.html" class="btn secundario">Agenda</a>
+            <a href="pacientes.html" class="btn secundario">Lista de Pacientes</a>
+          </div>
+        </section>
+
+        <!-- MENSAGEM GLOBAL DA TELA -->
+        <div id="mensagemReceita" class="mensagem mensagem-info" style="display:none;">
+          <!-- Preenchido via JS -->
+        </div>
+
+        <!-- CARD: DADOS DO PACIENTE -->
+        <section class="card">
+          <div class="card-header">
+            <h2>Paciente atual</h2>
+          </div>
+
+          <div class="info-paciente-grid">
+            <div>
+              <span class="info-paciente-label">ID do paciente:</span><br>
+              <span class="info-paciente-valor" id="recPacienteId">-</span>
+            </div>
+            <div>
+              <span class="info-paciente-label">Nome completo:</span><br>
+              <span class="info-paciente-valor" id="recPacienteNome">-</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- CARD: NOVA RECEITA + SUGESTÕES DE MEDICAÇÕES -->
+        <section class="card">
+          <div class="card-header">
+            <h2>Nova receita</h2>
+          </div>
+
+          <form id="formReceita">
+            <div class="form-receita-grid">
+              <div class="campo-controle">
+                <label for="textoMedicamentos" class="campo-label">
+                  Medicamentos / Posologia *
+                </label>
+                <textarea id="textoMedicamentos" rows="6" required></textarea>
+                <div class="campo-ajuda">
+                  Ex.: Nome do medicamento, dose, intervalo, duração do tratamento.
+                </div>
+              </div>
+
+              <div class="campo-controle">
+                <label for="obsReceita" class="campo-label">
+                  Observações adicionais
+                </label>
+                <textarea id="obsReceita" rows="3"></textarea>
+                <div class="campo-ajuda">
+                  Ex.: Orientações complementares, recomendações gerais, alertas de uso.
+                </div>
+              </div>
+            </div>
+
+            <!-- BLOCO: SUGESTÕES DE MEDICAÇÕES -->
+            <div class="medicamentos-card">
+              <div class="card-header" style="padding-left:0; padding-right:0;">
+                <h3 style="margin:0 0 6px 0; font-size:15px;">Sugestões de medicações (catálogo)</h3>
+                <p style="margin:0; font-size:12px; color:#666;">
+                  Use o campo abaixo para buscar pelas medicações cadastradas na tabela "Medicamentos".
+                  Clique em "Inserir" para adicionar a linha diretamente ao campo de prescrição.
+                </p>
+              </div>
+
+              <div class="medicamentos-grid">
+                <div class="filtro-medicamento">
+                  <input
+                    type="text"
+                    id="buscaMedicamento"
+                    placeholder="Buscar por nome, posologia, via..."
+                  >
+                  <button type="button" id="btnRecarregarMedicamentos" class="btn secundario">
+                    Recarregar lista
+                  </button>
+                </div>
+
+                <div class="tabela-medicamentos-wrapper">
+                  <table class="tabela-medicamentos">
+                    <thead>
+                      <tr>
+                        <th>Medicação</th>
+                        <th>Posologia</th>
+                        <th>Qtd</th>
+                        <th>Via</th>
+                        <th class="col-med-acoes">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabelaMedicamentosBody">
+                      <!-- preenchido via JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="acoes-receita-form">
+              <button type="submit" class="btn primario">Salvar receita</button>
+              <button type="button" id="btnLimparCamposReceita" class="btn secundario">
+                Limpar campos
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- CARD: RECEITAS ANTERIORES -->
+        <section class="card">
+          <div class="card-header card-header-lista">
+            <h2>Receitas anteriores do paciente</h2>
+            <span style="font-size: 12px; color: #666;">
+              Clique em "PDF" para gerar o documento ou em "Usar como modelo" para reaproveitar a prescrição.
+            </span>
+          </div>
+
+          <div class="tabela-receita-wrapper">
+            <table class="tabela-receitas">
+              <thead>
+                <tr>
+                  <th class="col-data-receita">Data / Hora</th>
+                  <th>Medicamentos / Posologia</th>
+                  <th>Observações</th>
+                  <th class="col-acoes-receita">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaReceitasBody">
+                <!-- linhas via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/receita.js"></script>
+  <script>
+    // Preenche ano atual e data de hoje
+    (function () {
+      const spanAno = document.getElementById("anoAtualSidebar");
+      if (spanAno) {
+        spanAno.textContent = new Date().getFullYear();
+      }
+
+      const infoDataHoje = document.getElementById("infoDataHoje");
+      if (infoDataHoje) {
+        const hoje = new Date();
+        const dd = String(hoje.getDate()).padStart(2, "0");
+        const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+        const yyyy = hoje.getFullYear();
+        infoDataHoje.textContent = `Hoje: ${dd}/${mm}/${yyyy}`;
+      }
+    })();
+  </script>
+</body>
+</html>

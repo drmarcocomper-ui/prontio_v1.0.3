@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>PRONTIO - Agenda</title>
+  <link rel="stylesheet" href="assets/css/layout.css">
+
+  <style>
+    /* Estilos específicos da página de Agenda */
+
+    .form-grid-agenda {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      gap: 12px 16px;
+    }
+
+    .form-grid-agenda .col-span-2 {
+      grid-column: span 2;
+    }
+
+    .campo-label {
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 4px;
+      display: block;
+      color: #444;
+    }
+
+    .campo-controle input,
+    .campo-controle select,
+    .campo-controle textarea {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 14px;
+    }
+
+    .acoes-form-agenda {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tabela-agenda-wrapper {
+      overflow-x: auto;
+    }
+
+    .tabela-agenda {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 650px;
+      background: #ffffff;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .tabela-agenda th,
+    .tabela-agenda td {
+      border: 1px solid #dde3ea;
+      padding: 6px 8px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .tabela-agenda thead {
+      background: #f1f4f8;
+    }
+
+    .tabela-agenda tbody tr:nth-child(even) {
+      background: #fafbfc;
+    }
+
+    .linha-vazia {
+      text-align: center;
+      color: #777;
+      font-style: italic;
+    }
+
+    .acoes-agenda {
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .acoes-agenda .btn {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .filtro-agenda {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .filtro-agenda label {
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .filtro-agenda input[type="date"] {
+      padding: 4px 6px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- SIDEBAR / MENU LATERAL -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo">PRONTIO</div>
+        <div class="app-version">v0.1 - Dr. Marco Antônio Comper</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link">Início</a>
+        <a href="pacientes.html" class="nav-link">Pacientes</a>
+        <a href="agenda.html" class="nav-link active">Agenda</a>
+        <a href="prontuario.html" class="nav-link">Prontuário</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="configuracoes.html" class="nav-link">Configurações</a>
+        <div style="font-size: 11px; opacity: 0.9; margin-top: 6px;">
+          &copy; <span id="anoAtualSidebar"></span> PRONTIO
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="main-area">
+      <!-- TOPO -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1>Agenda</h1>
+          <p>Controle de agendamentos por dia</p>
+        </div>
+        <div class="topbar-actions">
+          <!-- Espaço para futuras ações rápidas -->
+          <span id="infoDataHoje"></span>
+        </div>
+      </header>
+
+      <!-- CONTEÚDO -->
+      <main class="content">
+        <!-- MENSAGEM GLOBAL DA AGENDA -->
+        <div id="mensagemAgenda" class="mensagem mensagem-info" style="display:none;">
+          <!-- Preenchido via JS -->
+        </div>
+
+        <!-- CARD: NOVO AGENDAMENTO -->
+        <section class="card">
+          <div class="card-header">
+            <h2>Novo agendamento</h2>
+          </div>
+
+          <form id="formAgenda">
+            <div class="form-grid-agenda">
+              <div class="campo-controle col-span-2">
+                <label for="pacienteSelect" class="campo-label">Paciente *</label>
+                <select id="pacienteSelect" required>
+                  <option value="">Carregando pacientes...</option>
+                </select>
+              </div>
+
+              <div class="campo-controle">
+                <label for="dataConsulta" class="campo-label">Data da consulta *</label>
+                <input type="date" id="dataConsulta" required>
+              </div>
+
+              <div class="campo-controle">
+                <label for="horaConsulta" class="campo-label">Hora da consulta *</label>
+                <input type="time" id="horaConsulta" required>
+              </div>
+
+              <div class="campo-controle">
+                <label for="tipoConsulta" class="campo-label">Tipo</label>
+                <select id="tipoConsulta">
+                  <option value="">(não definido)</option>
+                  <option value="Consulta">Consulta</option>
+                  <option value="Retorno">Retorno</option>
+                  <option value="Avaliação">Avaliação</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+
+              <div class="campo-controle col-span-4">
+                <label for="obsAgenda" class="campo-label">Observações</label>
+                <textarea id="obsAgenda" rows="3"></textarea>
+              </div>
+            </div>
+
+            <div class="acoes-form-agenda">
+              <button type="submit" class="btn primario">Salvar agendamento</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- CARD: AGENDA DO DIA -->
+        <section class="card">
+          <div class="card-header card-header-lista">
+            <div>
+              <h2>Agenda do dia</h2>
+            </div>
+            <div class="filtro-agenda">
+              <label for="dataFiltro">Data:</label>
+              <input type="date" id="dataFiltro">
+              <button id="btnCarregarAgenda" class="btn secundario">Carregar agenda</button>
+            </div>
+          </div>
+
+          <div class="tabela-agenda-wrapper">
+            <table class="tabela-agenda">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Paciente</th>
+                  <th>Tipo</th>
+                  <th>Status</th>
+                  <th>Observações</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaAgendaBody">
+                <!-- linhas via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/agenda.js"></script>
+  <script>
+    // Preenche ano atual no rodapé da sidebar e data de hoje no topo
+    (function () {
+      const spanAno = document.getElementById("anoAtualSidebar");
+      if (spanAno) {
+        spanAno.textContent = new Date().getFullYear();
+      }
+
+      const infoDataHoje = document.getElementById("infoDataHoje");
+      if (infoDataHoje) {
+        const hoje = new Date();
+        const dd = String(hoje.getDate()).padStart(2, "0");
+        const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+        const yyyy = hoje.getFullYear();
+        infoDataHoje.textContent = `Hoje: ${dd}/${mm}/${yyyy}`;
+      }
+    })();
+  </script>
+</body>
+</html>

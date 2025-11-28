@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>PRONTIO - Prontuário do Paciente</title>
+
+  <!-- Layout base do sistema -->
+  <link rel="stylesheet" href="assets/css/layout.css">
+
+  <!-- Estilos específicos da página (bem leves) -->
+  <style>
+    .topbar-paciente-id {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .card-subtitulo {
+      margin-top: 4px;
+      font-size: 13px;
+      color: #666;
+    }
+  </style>
+</head>
+<body data-page-id="prontuario">
+  <div class="app-shell">
+    <!-- MENU LATERAL (partial) -->
+    <div id="sidebar-container"></div>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="main-area">
+      <!-- TOPO (partial) -->
+      <div id="topbar-container"></div>
+
+      <!-- CONTEÚDO -->
+      <main class="content">
+        <!-- Mensagens (info / sucesso / erro) -->
+        <div id="mensagem" class="mensagem mensagem-info"></div>
+
+        <!-- CARD: Dados do paciente -->
+        <section class="card">
+          <div class="card-header">
+            <h2>Dados do paciente</h2>
+            <p class="card-subtitulo">
+              Informações cadastrais básicas vindas do módulo de Pacientes.
+            </p>
+          </div>
+
+          <div class="dados-paciente-grid">
+            <div class="campo-label">ID:</div>
+            <div class="campo-valor" id="pacienteId"></div>
+
+            <div class="campo-label">Nome:</div>
+            <div class="campo-valor" id="pacienteNome"></div>
+
+            <div class="campo-label">Data de nascimento:</div>
+            <div class="campo-valor" id="pacienteDataNasc"></div>
+
+            <div class="campo-label">Telefone:</div>
+            <div class="campo-valor" id="pacienteTelefone"></div>
+
+            <div class="campo-label">E-mail:</div>
+            <div class="campo-valor" id="pacienteEmail"></div>
+
+            <div class="campo-label">Observações:</div>
+            <div class="campo-valor" id="pacienteObservacoes"></div>
+
+            <div class="campo-label">Ativo:</div>
+            <div class="campo-valor" id="pacienteAtivo"></div>
+          </div>
+        </section>
+
+        <!-- CARD: Resumo clínico -->
+        <section class="card">
+          <div class="card-header card-header-lista">
+            <div>
+              <h2>Resumo clínico</h2>
+              <p class="card-subtitulo">
+                Visão rápida das últimas evoluções e receitas deste paciente.
+              </p>
+            </div>
+            <div class="resumo-acoes">
+              <button class="btn secundario" id="btnVerEvolucoes">
+                Ver todas evoluções
+              </button>
+              <button class="btn secundario" id="btnVerReceitas">
+                Ver todas receitas
+              </button>
+            </div>
+          </div>
+
+          <div class="resumo-grid">
+            <!-- Últimas evoluções -->
+            <div class="resumo-bloco">
+              <h3>Últimas evoluções</h3>
+              <ul id="listaEvolucoes" class="resumo-lista">
+                <!-- preenchido via JS -->
+              </ul>
+              <div id="evolucoesMensagem" class="resumo-mensagem-secundaria"></div>
+            </div>
+
+            <!-- Últimas receitas -->
+            <div class="resumo-bloco">
+              <h3>Últimas receitas</h3>
+              <ul id="listaReceitas" class="resumo-lista">
+                <!-- preenchido via JS -->
+              </ul>
+              <div id="receitasMensagem" class="resumo-mensagem-secundaria"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- JS base da API -->
+  <script src="assets/js/api.js"></script>
+  <!-- JS que carrega sidebar/topbar -->
+  <script src="assets/js/layout.js"></script>
+  <!-- JS específico do prontuário -->
+  <script src="assets/js/prontuario.js"></script>
+
+  <script>
+    // Ajusta o topo específico do prontuário
+    document.addEventListener("DOMContentLoaded", () => {
+      const interval = setInterval(() => {
+        const topbar = document.getElementById("topbar-container");
+        if (!topbar) return;
+
+        const titulo = topbar.querySelector("#topbar-title-text");
+        const subtitulo = topbar.querySelector("#topbar-subtitle");
+        let extra = topbar.querySelector("#topbar-extra");
+
+        if (!titulo || !subtitulo) return;
+
+        clearInterval(interval);
+
+        // Define título e subtítulo fixos
+        titulo.textContent = "Prontuário do Paciente";
+        titulo.dataset.fixed = "1";
+        subtitulo.textContent = "Carregando paciente...";
+
+        // Aproveita o topbar-extra como lugar para mostrar o ID do paciente
+        if (extra) {
+          extra.id = "pacienteIdTopo";
+          extra.className = "topbar-paciente-id";
+        }
+      }, 50);
+    });
+  </script>
+</body>
+</html>
