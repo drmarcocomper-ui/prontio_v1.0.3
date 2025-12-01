@@ -1,169 +1,444 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <title>PRONTIO - Agenda</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- CSS base (reset + tokens globais) -->
+  <link rel="stylesheet" href="assets/css/base.css">
+  <!-- Layout geral (app-shell, main-area, content, etc.) -->
   <link rel="stylesheet" href="assets/css/layout.css">
-
-  <style>
-    /* Estilos específicos da página de Agenda */
-
-    .form-grid-agenda {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(140px, 1fr));
-      gap: 12px 16px;
-    }
-
-    .form-grid-agenda .col-span-2 {
-      grid-column: span 2;
-    }
-
-    .campo-label {
-      font-weight: bold;
-      font-size: 13px;
-      margin-bottom: 4px;
-      display: block;
-      color: #444;
-    }
-
-    .campo-controle input,
-    .campo-controle select,
-    .campo-controle textarea {
-      width: 100%;
-      padding: 6px 8px;
-      font-size: 14px;
-    }
-
-    .acoes-form-agenda {
-      margin-top: 12px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .tabela-agenda-wrapper {
-      overflow-x: auto;
-    }
-
-    .tabela-agenda {
-      border-collapse: collapse;
-      width: 100%;
-      min-width: 650px;
-      background: #ffffff;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .tabela-agenda th,
-    .tabela-agenda td {
-      border: 1px solid #dde3ea;
-      padding: 6px 8px;
-      text-align: left;
-      font-size: 13px;
-    }
-
-    .tabela-agenda thead {
-      background: #f1f4f8;
-    }
-
-    .tabela-agenda tbody tr:nth-child(even) {
-      background: #fafbfc;
-    }
-
-    .linha-vazia {
-      text-align: center;
-      color: #777;
-      font-style: italic;
-    }
-
-    .acoes-agenda {
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    .acoes-agenda .btn {
-      padding: 4px 10px;
-      font-size: 12px;
-    }
-
-    .filtro-agenda {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-
-    .filtro-agenda label {
-      font-size: 13px;
-      font-weight: bold;
-    }
-
-    .filtro-agenda input[type="date"] {
-      padding: 4px 6px;
-      font-size: 13px;
-    }
-  </style>
+  <!-- Componentes genéricos (card, btn, mensagem, tabela, etc.) -->
+  <link rel="stylesheet" href="assets/css/components.css">
+  <!-- Sidebar "nível produto" -->
+  <link rel="stylesheet" href="assets/css/sidebar.css">
+  <!-- Estilos do topo -->
+  <link rel="stylesheet" href="assets/css/topbar.css">
+  <!-- Estilos genéricos de formulários + drawer -->
+  <link rel="stylesheet" href="assets/css/forms.css">
+  <!-- CSS específico da agenda -->
+  <link rel="stylesheet" href="assets/css/modules/agenda.css">
 </head>
-<body>
+
+<body
+  data-page-id="agenda"
+  data-subtitle="Controle de agendamentos por dia"
+  data-tag="Diária"
+  data-context="Consultório"
+>
   <div class="app-shell">
     <!-- SIDEBAR / MENU LATERAL -->
-    <aside class="sidebar">
+    <aside id="sidebar" class="sidebar" data-component="sidebar">
       <div class="sidebar-header">
         <div class="app-logo">PRONTIO</div>
-        <div class="app-version">v0.1 - Dr. Marco Antônio Comper</div>
+        <div class="app-version" id="appVersion">v1.0.3</div>
+
+        <div class="sidebar-header-actions">
+          <!-- Botão: modo compacto (desktop) -->
+          <button
+            type="button"
+            class="icon-button js-toggle-compact"
+            aria-label="Alternar modo compacto da barra lateral"
+            aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M4 5h16v2H4V5zm0 6h10v2H4v-2zm0 6h16v2H4v-2z"
+                fill="currentColor" />
+            </svg>
+          </button>
+
+          <!-- Botão: tema claro/escuro -->
+          <button
+            type="button"
+            class="icon-button js-toggle-theme"
+            aria-label="Alternar tema claro/escuro"
+            aria-pressed="false">
+            <!-- Sol (tema claro) -->
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg js-theme-icon-sun">
+              <circle cx="12" cy="12" r="4" fill="currentColor"></circle>
+              <g stroke="currentColor" stroke-width="1.5">
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="12" y1="19" x2="12" y2="22"></line>
+                <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"></line>
+                <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"></line>
+                <line x1="2" y1="12" x2="5" y2="12"></line>
+                <line x1="19" y1="12" x2="22" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"></line>
+                <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"></line>
+              </g>
+            </svg>
+
+            <!-- Lua (tema escuro) -->
+            <svg viewBox="0 0 24 24" aria-hidden="true"
+                 class="icon-svg js-theme-icon-moon"
+                 style="display:none">
+              <path
+                d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79z"
+                fill="currentColor"></path>
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <nav class="sidebar-nav">
-        <a href="index.html" class="nav-link">Início</a>
-        <a href="pacientes.html" class="nav-link">Pacientes</a>
-        <a href="agenda.html" class="nav-link active">Agenda</a>
-        <a href="prontuario.html" class="nav-link">Prontuário</a>
+      <nav class="sidebar-nav" id="sidebarNav" aria-label="Navegação principal">
+        <a href="index.html" class="nav-link" data-page-id="index">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M4 10.5L12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Início</span>
+        </a>
+
+        <a href="pacientes.html" class="nav-link" data-page-id="pacientes">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1.5C19 16 16 14 12 14z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Pacientes</span>
+        </a>
+
+        <a href="agenda.html" class="nav-link" data-page-id="agenda" aria-current="page">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M7 2a1 1 0 0 0-1 1v1H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-2 0v1H9V3A1 1 0 0 0 8 2zM5 9h14v9H5z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Agenda</span>
+        </a>
+
+        <a href="prontuario.html" class="nav-link" data-page-id="prontuario">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M7 3a2 2 0 0 0-2 2v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5L14.5 3zM14 4.5 18.5 9H14z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Prontuário</span>
+        </a>
+
+        <a href="evolucao.html" class="nav-link" data-page-id="evolucao">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M5 4a2 2 0 0 0-2 2v12a1 1 0 0 0 1 1h10.5L21 12.5V6a2 2 0 0 0-2-2zm2 3h10v2H7zm0 4h6v2H7z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Evolução</span>
+        </a>
+
+        <a href="receita.html" class="nav-link" data-page-id="receita">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M7 3a2 2 0 0 0-2 2v14a1 1 0 0 0 1 1h7v-2H7V5h10v4h2V5a2 2 0 0 0-2-2zm7.5 8-3.5 3.5 1.5 1.5L16 13.5l1.5 1.5L19 13.5 16.5 11z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Receita</span>
+        </a>
+
+        <a href="exames.html" class="nav-link" data-page-id="exames">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M7 3a2 2 0 0 0-2 2v14h2v-4h10v4h2V5a2 2 0 0 0-2-2zm0 10V5h10v8z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Exames</span>
+        </a>
+
+        <a href="laudo.html" class="nav-link" data-page-id="laudo">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M6 3a2 2 0 0 0-2 2v14l4-2 4 2 4-2 4 2V5a2 2 0 0 0-2-2z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Laudos</span>
+        </a>
       </nav>
 
       <div class="sidebar-footer">
-        <a href="configuracoes.html" class="nav-link">Configurações</a>
-        <div style="font-size: 11px; opacity: 0.9; margin-top: 6px;">
+        <!-- Configurações fixo no rodapé -->
+        <a href="configuracoes.html" class="nav-link nav-link-config" data-page-id="configuracoes">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2-1.53a.5.5 0 0 0 .12-.64l-1.9-3.29a.5.5 0 0 0-.61-.22l-2.35.94a7 7 0 0 0-1.63-.94l-.36-2.5A.5.5 0 0 0 13.91 2h-3.82a.5.5 0 0 0-.49.42l-.36 2.5a7 7 0 0 0-1.63.94l-2.35-.94a.5.5 0 0 0-.61.22L2.75 8.37a.5.5 0 0 0 .12.64l2 1.53A7.07 7.07 0 0 0 4.82 12c0 .32.02.63.05.94l-2 1.53a.5.5 0 0 0-.12.64l1.9 3.29a.5.5 0 0 0 .61.22l2.35-.94a7 7 0 0 0 1.63.94l.36 2.5a.5.5 0 0 0 .49.42h3.82a.5.5 0 0 0 .49-.42l.36-2.5a7 7 0 0 0 1.63-.94l2.35.94a.5.5 0 0 0 .61-.22l1.9-3.29a.5.5 0 0 0-.12-.64zm-7.14 2.56A3.5 3.5 0 1 1 15.5 12a3.5 3.5 0 0 1-3.5 3.5z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Configurações</span>
+        </a>
+
+        <small class="sidebar-user" id="sidebarUser"></small>
+        <span class="sidebar-year">
           &copy; <span id="anoAtualSidebar"></span> PRONTIO
-        </div>
+        </span>
       </div>
     </aside>
 
+    <!-- BACKDROP PARA O DRAWER MOBILE -->
+    <div class="sidebar-backdrop" data-sidebar-backdrop></div>
+
     <!-- ÁREA PRINCIPAL -->
-    <div class="main-area">
+    <main class="main-area">
       <!-- TOPO -->
-      <header class="topbar">
-        <div class="topbar-title">
-          <h1>Agenda</h1>
-          <p>Controle de agendamentos por dia</p>
+      <header class="topbar topbar-agenda" data-component="topbar">
+        <div class="topbar-col-left">
+          <!-- Linha de topo: botão sanduíche + breadcrumb -->
+          <div class="topbar-left-header">
+            <!-- Botão de abrir/fechar sidebar no mobile -->
+            <button
+              type="button"
+              class="icon-button topbar-menu-button js-toggle-sidebar"
+              aria-label="Abrir menu de navegação">
+              <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                <path
+                  d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"
+                  fill="currentColor" />
+              </svg>
+            </button>
+
+            <div id="topbar-breadcrumb" class="topbar-breadcrumb"></div>
+          </div>
+
+          <div class="topbar-title-main">
+            <h1 id="topbar-title-text"></h1>
+            <span id="topbar-tag" class="topbar-tag"></span>
+          </div>
+
+          <p id="topbar-subtitle" class="topbar-subtitle"></p>
         </div>
-        <div class="topbar-actions">
-          <!-- Espaço para futuras ações rápidas -->
-          <span id="infoDataHoje"></span>
+
+        <div class="topbar-col-right">
+          <div class="topbar-agenda-summary">
+            <div class="topbar-agenda-date">
+              <span class="topbar-agenda-label">Data em foco</span>
+              <span id="topbar-agenda-data" class="topbar-agenda-value">--/--/----</span>
+            </div>
+
+            <div class="topbar-agenda-stats">
+              <span class="topbar-agenda-chip">
+                <span class="chip-label">Agendados</span>
+                <span id="topbar-agenda-total" class="chip-value">0</span>
+              </span>
+
+              <span class="topbar-agenda-chip chip-ok">
+                <span class="chip-label">Confirmados</span>
+                <span id="topbar-agenda-confirmados" class="chip-value">0</span>
+              </span>
+
+              <span class="topbar-agenda-chip chip-pending">
+                <span class="chip-label">Em aberto</span>
+                <span id="topbar-agenda-abertos" class="chip-value">0</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="topbar-meta">
+            <span id="topbar-meta-date" class="topbar-meta-item"></span>
+            <span id="topbar-meta-context" class="topbar-meta-item"></span>
+          </div>
         </div>
       </header>
 
       <!-- CONTEÚDO -->
-      <main class="content">
+      <section class="content">
         <!-- MENSAGEM GLOBAL DA AGENDA -->
-        <div id="mensagemAgenda" class="mensagem mensagem-info" style="display:none;">
+        <div id="mensagemAgenda" class="mensagem is-hidden">
           <!-- Preenchido via JS -->
         </div>
 
-        <!-- CARD: NOVO AGENDAMENTO -->
+        <!-- CARD: AGENDA DO DIA -->
         <section class="card">
-          <div class="card-header">
-            <h2>Novo agendamento</h2>
+          <div class="card-header card-header-lista">
+            <div>
+              <h2>Agenda do dia</h2>
+            </div>
+            <div class="filtro-agenda">
+              <label for="dataFiltro">Data:</label>
+              <input type="date" id="dataFiltro">
+              <button id="btnCarregarAgenda" class="btn secundario">Carregar agenda</button>
+              <!-- Botão abre o drawer genérico "agenda" -->
+              <button
+                id="btnNovoAgendamento"
+                type="button"
+                class="btn primario"
+                data-drawer-open="agenda">
+                Novo agendamento
+              </button>
+            </div>
           </div>
 
-          <form id="formAgenda">
-            <div class="form-grid-agenda">
-              <div class="campo-controle col-span-2">
-                <label for="pacienteSelect" class="campo-label">Paciente *</label>
+          <div class="tabela-agenda-wrapper">
+            <table class="tabela tabela-agenda">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Paciente</th>
+                  <th>Tipo</th>
+                  <th>Status</th>
+                  <th>Observações</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaAgendaBody">
+                <tr>
+                  <td colspan="6" class="linha-vazia">
+                    Nenhum agendamento encontrado para esta data.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <!-- DRAWER: NOVO AGENDAMENTO (genérico, controlado por forms.js) -->
+  <div class="drawer" data-drawer="agenda" aria-hidden="true">
+    <div class="drawer-overlay" data-drawer-overlay></div>
+
+    <div
+      class="drawer-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="drawerAgendaTitle"
+    >
+      <header class="drawer-header">
+        <h2 id="drawerAgendaTitle" class="drawer-title">Novo agendamento</h2>
+        <button
+          type="button"
+          class="icon-button drawer-close-button"
+          aria-label="Fechar painel de novo agendamento"
+          data-drawer-close
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </header>
+
+      <div class="drawer-body">
+        <form id="formAgenda">
+          <div class="form-grid-agenda">
+
+            <!-- SEÇÃO: PACIENTE (EXISTENTE / NOVO) -->
+            <div class="form-section col-span-4">
+              <p class="form-section-title">Paciente</p>
+
+              <!-- Escolha do modo de paciente -->
+              <div class="campo-controle">
+                <span class="campo-label">Modo</span>
+                <div class="campo-paciente-modo">
+                  <label>
+                    <input type="radio" name="modoPaciente" value="existente" checked>
+                    Já cadastrado
+                  </label>
+                  <label>
+                    <input type="radio" name="modoPaciente" value="novo">
+                    Novo paciente
+                  </label>
+                </div>
+              </div>
+
+              <!-- BLOCO: PACIENTE JÁ CADASTRADO -->
+              <div class="campo-controle bloco-paciente-existente">
+                <label for="pacienteSelect" class="campo-label">Selecionar paciente *</label>
                 <select id="pacienteSelect" required>
                   <option value="">Carregando pacientes...</option>
                 </select>
+
+                <!-- RESUMO DO PACIENTE (CPF / TELEFONE) -->
+                <div id="pacienteResumo" class="paciente-resumo is-hidden">
+                  <span class="paciente-resumo-item">
+                    <strong>CPF:</strong>
+                    <span id="pacienteResumoDocumento">—</span>
+                  </span>
+                  <span class="paciente-resumo-item">
+                    <strong>Telefone:</strong>
+                    <span id="pacienteResumoTelefone">—</span>
+                  </span>
+                </div>
               </div>
+            </div>
+
+            <!-- SEÇÃO: NOVO PACIENTE -->
+            <div class="form-section col-span-4 bloco-paciente-novo is-hidden">
+              <p class="form-section-title">Dados do novo paciente</p>
+
+              <div class="campo-controle">
+                <label for="novoPacienteNome" class="campo-label">Nome completo *</label>
+                <input type="text" id="novoPacienteNome" autocomplete="off">
+              </div>
+
+              <div class="campo-controle">
+                <label for="novoPacienteTelefone" class="campo-label">Telefone / WhatsApp</label>
+                <input type="tel" id="novoPacienteTelefone" autocomplete="off">
+              </div>
+
+              <div class="campo-controle">
+                <label for="novoPacienteDocumento" class="campo-label">CPF</label>
+                <input type="text" id="novoPacienteDocumento" autocomplete="off">
+              </div>
+
+              <div class="campo-controle">
+                <label for="novoPacienteNascimento" class="campo-label">Data de nascimento</label>
+                <input type="date" id="novoPacienteNascimento">
+              </div>
+
+              <div class="campo-controle">
+                <label for="novoPacienteEmail" class="campo-label">E-mail</label>
+                <input type="email" id="novoPacienteEmail" autocomplete="off">
+              </div>
+
+              <div class="campo-controle">
+                <label for="novoPacienteSexo" class="campo-label">Sexo</label>
+                <select id="novoPacienteSexo">
+                  <option value="">(não informado)</option>
+                  <option value="F">Feminino</option>
+                  <option value="M">Masculino</option>
+                  <option value="O">Outro</option>
+                </select>
+              </div>
+
+              <div class="campo-controle">
+                <label for="novoPacienteCidade" class="campo-label">Cidade</label>
+                <input type="text" id="novoPacienteCidade" autocomplete="off">
+              </div>
+
+              <div class="campo-controle">
+                <label for="novoPacienteBairro" class="campo-label">Bairro</label>
+                <input type="text" id="novoPacienteBairro" autocomplete="off">
+              </div>
+
+              <div class="campo-controle">
+                <label for="novoPacienteProfissao" class="campo-label">Profissão</label>
+                <input type="text" id="novoPacienteProfissao" autocomplete="off">
+              </div>
+
+              <div class="campo-controle">
+                <label for="novoPacientePlanoSaude" class="campo-label">Plano de Saúde</label>
+                <input type="text" id="novoPacientePlanoSaude" autocomplete="off">
+              </div>
+            </div>
+
+            <!-- SEÇÃO: DADOS DA CONSULTA -->
+            <div class="form-section col-span-4">
+              <p class="form-section-title">Dados da consulta</p>
 
               <div class="campo-controle">
                 <label for="dataConsulta" class="campo-label">Data da consulta *</label>
@@ -181,77 +456,32 @@
                   <option value="">(não definido)</option>
                   <option value="Consulta">Consulta</option>
                   <option value="Retorno">Retorno</option>
-                  <option value="Avaliação">Avaliação</option>
-                  <option value="Outro">Outro</option>
+                  <option value="Cortesia">Cortesia</option>
                 </select>
               </div>
 
-              <div class="campo-controle col-span-4">
+              <div class="campo-controle">
                 <label for="obsAgenda" class="campo-label">Observações</label>
                 <textarea id="obsAgenda" rows="3"></textarea>
               </div>
             </div>
 
-            <div class="acoes-form-agenda">
-              <button type="submit" class="btn primario">Salvar agendamento</button>
-            </div>
-          </form>
-        </section>
-
-        <!-- CARD: AGENDA DO DIA -->
-        <section class="card">
-          <div class="card-header card-header-lista">
-            <div>
-              <h2>Agenda do dia</h2>
-            </div>
-            <div class="filtro-agenda">
-              <label for="dataFiltro">Data:</label>
-              <input type="date" id="dataFiltro">
-              <button id="btnCarregarAgenda" class="btn secundario">Carregar agenda</button>
-            </div>
           </div>
 
-          <div class="tabela-agenda-wrapper">
-            <table class="tabela-agenda">
-              <thead>
-                <tr>
-                  <th>Hora</th>
-                  <th>Paciente</th>
-                  <th>Tipo</th>
-                  <th>Status</th>
-                  <th>Observações</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="tabelaAgendaBody">
-                <!-- linhas via JS -->
-              </tbody>
-            </table>
+          <div class="acoes-form-agenda drawer-footer">
+            <button type="submit" class="btn primario">Salvar agendamento</button>
+            <button type="button" class="btn secundario" data-drawer-close>
+              Cancelar
+            </button>
           </div>
-        </section>
-      </main>
+        </form>
+      </div>
     </div>
   </div>
 
-  <script src="assets/js/api.js"></script>
-  <script src="assets/js/agenda.js"></script>
-  <script>
-    // Preenche ano atual no rodapé da sidebar e data de hoje no topo
-    (function () {
-      const spanAno = document.getElementById("anoAtualSidebar");
-      if (spanAno) {
-        spanAno.textContent = new Date().getFullYear();
-      }
-
-      const infoDataHoje = document.getElementById("infoDataHoje");
-      if (infoDataHoje) {
-        const hoje = new Date();
-        const dd = String(hoje.getDate()).padStart(2, "0");
-        const mm = String(hoje.getMonth() + 1).padStart(2, "0");
-        const yyyy = hoje.getFullYear();
-        infoDataHoje.textContent = `Hoje: ${dd}/${mm}/${yyyy}`;
-      }
-    })();
-  </script>
+  <!-- JS: orquestrador principal -->
+  <script type="module" src="assets/js/main.js"></script>
+  <!-- JS: lógica específica da página de agenda -->
+  <script type="module" src="assets/js/pages/agenda.js"></script>
 </body>
 </html>

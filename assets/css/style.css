@@ -1,0 +1,44 @@
+/* ===========================================
+   PRONTIO - STYLE.CSS (PONTO DE ENTRADA)
+   Arquivo único de entrada para TODOS os estilos.
+   Ele importa:
+   - fundamentos (reset, tokens, utilitários)
+   - layout global
+   - componentes reutilizáveis
+   - sistema (sidebar, topbar, formulários)
+   - módulos específicos de página
+=========================================== */
+
+/* ============ FUNDAMENTOS ============ */
+@import url("base.css");
+@import url("components.css");
+
+/* ============ LAYOUT GLOBAL ============ */
+@import url("layout.css");
+
+/* ============ SISTEMA / ALTO NÍVEL ============ */
+@import url("sidebar.css");
+@import url("topbar.css");
+@import url("forms.css");
+
+/* ===========================================
+   MÓDULOS (CSS específico por página)
+   Agora ficam em /modules/
+=========================================== */
+
+@import url("modules/index.css");
+@import url("modules/agenda.css");
+@import url("modules/pacientes.css");
+@import url("modules/prontuario.css");
+@import url("modules/evolucao.css");
+@import url("modules/receita.css");
+@import url("modules/exames.css");
+@import url("modules/laudo.css");
+@import url("modules/configuracoes.css");
+
+/* 
+IMPORTANTE:
+- style.css continua funcionando como PONTO ÚNICO DE ENTRADA.
+- Pode ser usado por páginas novas ou antigas.
+- Qualquer arquivo “de página” deve ir para /modules/.
+*/

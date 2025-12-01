@@ -3,220 +3,202 @@
 <head>
   <meta charset="UTF-8">
   <title>PRONTIO - Exames</title>
-  <link rel="stylesheet" href="assets/css/layout.css">
 
-  <style>
-    .topbar-paciente {
-      font-size: 13px;
-      color: #666;
-    }
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    #mensagemExames {
-      margin-bottom: 16px;
-      font-size: 13px;
-    }
-
-    .aba-exames-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-
-    .aba-btn {
-      padding: 6px 12px;
-      font-size: 13px;
-      border-radius: 16px;
-      border: 1px solid #ccc;
-      background: #f5f5f5;
-      cursor: pointer;
-    }
-
-    .aba-btn.ativa {
-      background: #0d47a1;
-      color: #fff;
-      border-color: #0d47a1;
-      font-weight: bold;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .form-grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .campo-form {
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 10px;
-    }
-
-    .campo-form label {
-      font-weight: bold;
-      margin-bottom: 4px;
-      font-size: 13px;
-      color: #444;
-    }
-
-    .campo-form input,
-    .campo-form select,
-    .campo-form textarea {
-      padding: 6px 8px;
-      font-size: 14px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      font-family: inherit;
-    }
-
-    .campo-form textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
-
-    .campo-ajuda {
-      font-size: 11px;
-      color: #777;
-      margin-top: 2px;
-    }
-
-    .acoes-form {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
-
-    /* Particular - tabela de exames */
-    .tabela-exames-wrapper {
-      border: 1px solid #dde3ea;
-      border-radius: 6px;
-      overflow: hidden;
-      max-height: 260px;
-      overflow-y: auto;
-      background: #fafafa;
-      margin-top: 8px;
-    }
-
-    .tabela-exames {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-
-    .tabela-exames th,
-    .tabela-exames td {
-      border-bottom: 1px solid #e0e0e0;
-      padding: 4px 6px;
-      text-align: left;
-    }
-
-    .tabela-exames thead {
-      background: #e9f2ff;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    .col-exame-check {
-      width: 40px;
-      text-align: center;
-    }
-
-    .col-exame-grupo {
-      width: 120px;
-    }
-
-    .filtro-exames {
-      margin-bottom: 8px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .filtro-exames input {
-      flex: 1;
-      min-width: 160px;
-      padding: 4px 6px;
-      font-size: 12px;
-    }
-
-    @media (max-width: 800px) {
-      .form-grid-2 {
-        grid-template-columns: 1fr;
-      }
-
-      .info-paciente-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .info-paciente-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(160px, 1fr));
-      gap: 6px 18px;
-      font-size: 13px;
-    }
-
-    .info-paciente-label {
-      font-weight: bold;
-      color: #555;
-    }
-
-    .info-paciente-valor {
-      color: #111;
-    }
-  </style>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body data-page-id="exames">
   <div class="app-shell">
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <!-- SIDEBAR / MENU LATERAL (profissional) -->
+    <aside id="sidebar" class="sidebar" data-component="sidebar">
       <div class="sidebar-header">
         <div class="app-logo">PRONTIO</div>
-        <div class="app-version">v0.1 - Dr. Marco Antônio Comper</div>
+        <div class="app-version" id="appVersion">v1.0.3</div>
+
+        <div class="sidebar-header-actions">
+          <!-- Botão: modo compacto -->
+          <button
+            type="button"
+            class="icon-button js-toggle-compact"
+            aria-label="Alternar modo compacto da barra lateral"
+            aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M4 5h16v2H4V5zm0 6h10v2H4v-2zm0 6h16v2H4v-2z"
+                fill="currentColor" />
+            </svg>
+          </button>
+
+          <!-- Botão: tema claro/escuro -->
+          <button
+            type="button"
+            class="icon-button js-toggle-theme"
+            aria-label="Alternar modo claro/escuro"
+            aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg js-theme-icon-sun">
+              <!-- Sol -->
+              <circle cx="12" cy="12" r="4" fill="currentColor"></circle>
+              <g stroke="currentColor" stroke-width="1.5">
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="12" y1="19" x2="12" y2="22"></line>
+                <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"></line>
+                <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"></line>
+                <line x1="2" y1="12" x2="5" y2="12"></line>
+                <line x1="19" y1="12" x2="22" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"></line>
+                <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"></line>
+              </g>
+            </svg>
+
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg js-theme-icon-moon">
+              <!-- Lua -->
+              <path
+                d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79z"
+                fill="currentColor"></path>
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <nav class="sidebar-nav">
-        <a href="index.html" class="nav-link">Início</a>
-        <a href="pacientes.html" class="nav-link">Pacientes</a>
-        <a href="agenda.html" class="nav-link">Agenda</a>
-        <a href="prontuario.html" class="nav-link">Prontuário</a>
-        <a href="evolucao.html" class="nav-link">Evolução</a>
-        <a href="receita.html" class="nav-link">Receita</a>
-        <a href="exames.html" class="nav-link active">Exames</a>
-        <a href="laudo.html" class="nav-link">Laudos</a>
+      <nav class="sidebar-nav" id="sidebarNav" aria-label="Navegação principal">
+        <a href="index.html" class="nav-link" data-page-id="index">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M4 10.5L12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Início</span>
+        </a>
+
+        <a href="pacientes.html" class="nav-link" data-page-id="pacientes">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1.5C19 16 16 14 12 14z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Pacientes</span>
+        </a>
+
+        <a href="agenda.html" class="nav-link" data-page-id="agenda">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M7 2a1 1 0 0 0-1 1v1H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-2 0v1H9V3A1 1 0 0 0 8 2zM5 9h14v9H5z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Agenda</span>
+        </a>
+
+        <a href="prontuario.html" class="nav-link" data-page-id="prontuario">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M7 3a2 2 0 0 0-2 2v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5L14.5 3zM14 4.5 18.5 9H14z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Prontuário</span>
+        </a>
+
+        <a href="evolucao.html" class="nav-link" data-page-id="evolucao">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M5 4a2 2 0 0 0-2 2v12a1 1 0 0 0 1 1h10.5L21 12.5V6a2 2 0 0 0-2-2zm2 3h10v2H7zm0 4h6v2H7z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Evolução</span>
+        </a>
+
+        <a href="receita.html" class="nav-link" data-page-id="receita">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M7 3a2 2 0 0 0-2 2v14a1 1 0 0 0 1 1h7v-2H7V5h10v4h2V5a2 2 0 0 0-2-2zm7.5 8-3.5 3.5 1.5 1.5L16 13.5l1.5 1.5L19 13.5 16.5 11z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Receita</span>
+        </a>
+
+        <a href="exames.html" class="nav-link" data-page-id="exames">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M7 3a2 2 0 0 0-2 2v14h2v-4h10v4h2V5a2 2 0 0 0-2-2zm0 10V5h10v8z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Exames</span>
+        </a>
+
+        <a href="laudo.html" class="nav-link" data-page-id="laudo">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+              <path
+                d="M6 3a2 2 0 0 0-2 2v14l4-2 4 2 4-2 4 2V5a2 2 0 0 0-2-2z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="label">Laudos</span>
+        </a>
       </nav>
 
+      <a href="configuracoes.html" class="nav-link nav-link-config" data-page-id="configuracoes">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+            <path
+              d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2-1.53a.5.5 0 0 0 .12-.64l-1.9-3.29a.5.5 0 0 0-.61-.22l-2.35.94a7 7 0 0 0-1.63-.94l-.36-2.5A.5.5 0 0 0 13.91 2h-3.82a.5.5 0 0 0-.49.42l-.36 2.5a7 7 0 0 0-1.63.94l-2.35-.94a.5.5 0 0 0-.61.22L2.75 8.37a.5.5 0 0 0 .12.64l2 1.53A7.07 7.07 0 0 0 4.82 12c0 .32.02.63.05.94l-2 1.53a.5.5 0 0 0-.12.64l1.9 3.29a.5.5 0 0 0 .61.22l2.35-.94a7 7 0 0 0 1.63.94l.36 2.5a.5.5 0 0 0 .49.42h3.82a.5.5 0 0 0 .49-.42l.36-2.5a7 7 0 0 0 1.63-.94l2.35.94a.5.5 0 0 0 .61-.22l1.9-3.29a.5.5 0 0 0-.12-.64zm-7.14 2.56A3.5 3.5 0 1 1 15.5 12a3.5 3.5 0 0 1-3.5 3.5z"
+              fill="currentColor" />
+          </svg>
+        </span>
+        <span class="label">Configurações</span>
+      </a>
+
       <div class="sidebar-footer">
-        <a href="configuracoes.html" class="nav-link">Configurações</a>
-        <div style="font-size: 11px; opacity: 0.9; margin-top: 6px;">
+        <small class="sidebar-user" id="sidebarUser"></small>
+        <span class="sidebar-year">
           &copy; <span id="anoAtualSidebar"></span> PRONTIO
-        </div>
+        </span>
       </div>
     </aside>
 
     <!-- ÁREA PRINCIPAL -->
-    <div class="main-area">
+    <main class="main-area">
       <!-- TOPO -->
-      <header class="topbar">
+      <header class="topbar" data-component="topbar">
         <div class="topbar-title">
-          <h1>Exames</h1>
-          <p id="topbar-subtitle" class="topbar-paciente">Carregando paciente...</p>
+          <div id="topbar-breadcrumb" class="topbar-breadcrumb"></div>
+
+          <div class="topbar-title-main">
+            <h1 id="topbar-title-text"></h1>
+            <span id="topbar-tag" class="topbar-tag"></span>
+          </div>
+
+          <p id="topbar-subtitle" class="topbar-paciente">
+            Solicitação de exames (SADT / particular)
+          </p>
         </div>
         <div class="topbar-actions">
-          <span id="infoDataHoje"></span>
+          <div id="topbar-extra" class="topbar-extra"></div>
+          <div class="topbar-meta">
+            <span id="topbar-meta-date" class="topbar-meta-item"></span>
+            <span id="topbar-meta-context" class="topbar-meta-item"></span>
+          </div>
         </div>
       </header>
 
       <!-- CONTEÚDO -->
       <main class="content">
         <!-- MENSAGEM GLOBAL -->
-        <div id="mensagemExames" class="mensagem mensagem-info" style="display:none;"></div>
+        <div id="mensagemExames" class="mensagem" style="display:none;"></div>
 
         <!-- CARD: PACIENTE ATUAL -->
         <section class="card">
@@ -355,25 +337,10 @@
           </div>
         </section>
       </main>
-    </div>
+    </main>
   </div>
 
-  <script src="assets/js/api.js"></script>
-  <script src="assets/js/exames.js"></script>
-  <script>
-    (function () {
-      const spanAno = document.getElementById("anoAtualSidebar");
-      if (spanAno) spanAno.textContent = new Date().getFullYear();
-
-      const infoDataHoje = document.getElementById("infoDataHoje");
-      if (infoDataHoje) {
-        const hoje = new Date();
-        const dd = String(hoje.getDate()).padStart(2, "0");
-        const mm = String(hoje.getMonth() + 1).padStart(2, "0");
-        const yyyy = hoje.getFullYear();
-        infoDataHoje.textContent = `Hoje: ${dd}/${mm}/${yyyy}`;
-      }
-    })();
-  </script>
+  <!-- JS: apenas o orquestrador principal -->
+  <script type="module" src="assets/js/main.js"></script>
 </body>
 </html>

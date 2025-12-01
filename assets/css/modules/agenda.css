@@ -1,0 +1,376 @@
+/* ================================
+   PRONTIO - CSS específico da Agenda
+================================ */
+
+/* TABELA DA AGENDA */
+.tabela-agenda-wrapper {
+  overflow-x: auto;
+}
+
+.tabela-agenda {
+  width: 100%;
+  min-width: 650px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Célula de linha vazia */
+.linha-vazia {
+  text-align: center;
+  color: #777;
+  font-style: italic;
+}
+
+/* COLUNA DE AÇÕES */
+.acoes-agenda {
+  text-align: center;
+  white-space: nowrap;
+}
+.acoes-agenda .btn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* FILTRO */
+.filtro-agenda {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.filtro-agenda label {
+  font-size: 13px;
+  font-weight: bold;
+}
+.filtro-agenda input[type="date"] {
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+/* =========================
+   AJUSTES FINOS DO TOPO SÓ NA AGENDA
+========================= */
+body[data-page-id="agenda"] .topbar {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+body[data-page-id="agenda"] .topbar-title-main h1,
+body[data-page-id="agenda"] #topbar-title-text {
+  font-size: 20px;
+}
+body[data-page-id="agenda"] #topbar-subtitle {
+  font-size: 12px;
+}
+
+/* ============================
+   TOPO PROFISSIONAL – AGENDA
+============================ */
+.topbar-agenda {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.topbar-col-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.topbar-col-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+/* RESUMO PROFISSIONAL */
+.topbar-agenda-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 12px;
+  background: rgba(120, 120, 255, 0.10);
+  border-radius: 10px;
+  border: 1px solid rgba(120, 120, 255, 0.25);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.20);
+  backdrop-filter: blur(6px);
+}
+body.dark .topbar-agenda-summary {
+  background: rgba(31, 41, 55, 0.85);
+  border-color: rgba(129, 140, 248, 0.6);
+}
+
+.topbar-agenda-date {
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+}
+.topbar-agenda-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+}
+.topbar-agenda-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+.topbar-agenda-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.topbar-agenda-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(17, 24, 39, 0.9);
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  font-size: 11px;
+  color: #e5e7eb;
+}
+.topbar-agenda-chip .chip-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.topbar-agenda-chip .chip-value {
+  font-weight: 700;
+  font-size: 13px;
+}
+/* Variações de cor dos chips */
+.topbar-agenda-chip.chip-ok {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #6ee7b7;
+}
+.topbar-agenda-chip.chip-pending {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fde68a;
+}
+
+@media (max-width: 950px) {
+  .topbar-agenda {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .topbar-col-right {
+    align-items: flex-start;
+  }
+  .topbar-agenda-summary {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+@media (max-width: 600px) {
+  .topbar-agenda-summary {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ===================================================================
+   ESTILOS PARA OS SLOTS DA AGENDA
+   - slot-livre      
+   - slot-ocupado    
+   - slot-bloqueado  
+   - slot-cancelado  
+   - slot-confirmado 
+=================================================================== */
+
+/* REGRAS GERAIS */
+.tabela-agenda tbody tr td {
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* ---------- SLOT LIVRE (CLARO) ---------- */
+.slot-livre td {
+  background: #ecfdf5;
+  color: #065f46;
+  font-weight: 500;
+  border-bottom: 1px solid #d1fae5;
+}
+.slot-livre:hover td {
+  background: #d1fae5 !important;
+}
+/* botão */
+.slot-livre td:last-child .btn.primario {
+  background: #059669;
+  border-color: #047857;
+}
+.slot-livre td:last-child .btn.primario:hover {
+  background: #047857;
+}
+/* zebra */
+.slot-livre:nth-child(even) td {
+  background: #f0fdf4;
+}
+
+/* ---------- SLOT OCUPADO (CLARO) ---------- */
+.slot-ocupado td {
+  background: #ffffff;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+.slot-ocupado:hover td {
+  background: #f9fafb;
+}
+
+/* SLOT CONFIRMADO (CLARO, AZUL) – via data-status na <tr> */
+.slot-ocupado[data-status="CONFIRMADO"] td {
+  background: #eff6ff;
+  color: #1e3a8a;
+  border-bottom: 1px solid #bfdbfe;
+}
+.slot-ocupado[data-status="CONFIRMADO"]:hover td {
+  background: #dbeafe !important;
+}
+
+/* ---------- SLOT BLOQUEADO (CLARO) ---------- */
+.slot-bloqueado td {
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 500;
+  border-bottom: 1px solid #fca5a5;
+}
+.slot-bloqueado:hover td {
+  background: #fee2e2 !important;
+}
+
+/* ---------- SLOT CANCELADO (CLARO) ----------
+   Mantém o paciente na agenda, mas com texto riscado (sobretaxa) */
+body[data-page-id="agenda"] .slot-cancelado td {
+  background: #f3f4f6;
+  color: #6b7280;
+  border-bottom: 1px solid #d1d5db;
+}
+
+/* AQUI garantimos que TUDO dentro da linha cancelada fique riscado */
+body[data-page-id="agenda"] .slot-cancelado td,
+body[data-page-id="agenda"] .slot-cancelado td * {
+  text-decoration: line-through !important;
+}
+
+/* Hover da linha cancelada */
+body[data-page-id="agenda"] .slot-cancelado:hover td {
+  background: #e5e7eb;
+}
+
+/* Linha da agenda cancelada: um pouco mais “apagada” */
+body[data-page-id="agenda"] .slot-cancelado {
+  opacity: 0.8;
+}
+
+/* Texto riscado para consulta cancelada (se o JS usar spans específicos) */
+body[data-page-id="agenda"] .texto-cancelado {
+  text-decoration: line-through !important;
+  color: #9ca3af;
+}
+
+/* ---------- LINHA DE HORA CHEIA (08:00, 09:00...) ---------- */
+tr[data-hora$=":00"] td {
+  border-top: 2px solid #9ca3af33;
+}
+
+/* Responsivo de linhas */
+@media (max-width: 600px) {
+  .tabela-agenda td {
+    font-size: 13px;
+    padding: 6px 4px;
+  }
+}
+
+/* ===================================================================
+   DARK MODE – AGENDA
+   Aplica-se quando body.dark estiver ativo
+=================================================================== */
+
+/* fundo geral da tabela no dark */
+body.dark .tabela-agenda {
+  background: #020617; /* slate-950 */
+}
+
+/* SLOT LIVRE (DARK) */
+body.dark .slot-livre td {
+  background: #022c22;              /* verde bem escuro */
+  color: #bbf7d0;                   /* verde clarinho no texto */
+  border-bottom: 1px solid #064e3b;
+}
+body.dark .slot-livre:nth-child(even) td {
+  background: #064e3b;
+}
+body.dark .slot-livre:hover td {
+  background: #047857 !important;
+}
+body.dark .slot-livre td:last-child .btn.primario {
+  background: #16a34a;
+  border-color: #15803d;
+  color: #ecfdf5;
+}
+body.dark .slot-livre td:last-child .btn.primario:hover {
+  background: #15803d;
+}
+
+/* SLOT OCUPADO (DARK) */
+body.dark .slot-ocupado td {
+  background: #020617;
+  color: #e5e7eb;
+  border-bottom: 1px solid #111827;
+}
+body.dark .slot-ocupado:hover td {
+  background: #111827;
+}
+
+/* SLOT CONFIRMADO (DARK, AZUL) */
+body.dark .slot-ocupado[data-status="CONFIRMADO"] td {
+  background: #1d283a;     /* azul bem escuro */
+  color: #bfdbfe;
+  border-bottom: 1px solid #1d4ed8;
+}
+body.dark .slot-ocupado[data-status="CONFIRMADO"]:hover td {
+  background: #1e3a8a !important;
+}
+
+/* SLOT BLOQUEADO (DARK) */
+body.dark .slot-bloqueado td {
+  background: #3f1f1f;
+  color: #fecaca;
+  border-bottom: 1px solid #b91c1c;
+}
+body.dark .slot-bloqueado:hover td {
+  background: #7f1d1d !important;
+}
+
+/* SLOT CANCELADO (DARK) – mantém risco */
+body.dark[data-page-id="agenda"] .slot-cancelado td {
+  background: #111827;
+  color: #9ca3af;
+  border-bottom: 1px solid #1f2937;
+}
+
+/* Garante risco também no dark */
+body.dark[data-page-id="agenda"] .slot-cancelado td,
+body.dark[data-page-id="agenda"] .slot-cancelado td * {
+  text-decoration: line-through !important;
+}
+
+body.dark[data-page-id="agenda"] .slot-cancelado:hover td {
+  background: #1f2937;
+}
+
+/* linha de hora cheia (DARK) */
+body.dark tr[data-hora$=":00"] td {
+  border-top: 2px solid #374151;
+}
+
+/* célula de linha vazia (DARK) */
+body.dark .linha-vazia {
+  color: #9ca3af;
+}

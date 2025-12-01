@@ -1,7 +1,8 @@
 /* ============================
-   ESTILOS ESPECÍFICOS: PACIENTES
+   PRONTIO - CSS específico: PACIENTES
 ============================ */
 
+/* Utilitários locais */
 .oculto {
   display: none !important;
 }
@@ -10,8 +11,11 @@
   display: none !important;
 }
 
-/* MENSAGEM DE STATUS */
-.mensagem {
+/* MENSAGEM DE STATUS
+   Escopada só pra página de Pacientes.
+   No HTML: <div id="mensagem" class="mensagem"></div>
+*/
+body[data-page-id="pacientes"] #mensagem {
   margin-bottom: 12px;
   font-size: 13px;
   padding: 8px 10px;
@@ -42,6 +46,7 @@
   font-size: 14px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  box-sizing: border-box;
 }
 
 .campo input:focus,
@@ -180,43 +185,45 @@
   gap: 8px;
 }
 
-/* TABELA */
+/* TABELA DE PACIENTES
+   Escopamos .tabela para não afetar outras páginas
+*/
 .tabela-wrapper {
   margin-top: 15px;
   overflow-x: auto;
 }
 
-.tabela {
+body[data-page-id="pacientes"] .tabela {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
 }
 
-.tabela th,
-.tabela td {
+body[data-page-id="pacientes"] .tabela th,
+body[data-page-id="pacientes"] .tabela td {
   border: 1px solid #ccc;
   padding: 6px 8px;
   text-align: left;
   white-space: nowrap;
 }
 
-.tabela thead {
+body[data-page-id="pacientes"] .tabela thead {
   background: #f2f5f9;
 }
 
-.tabela tbody tr {
+body[data-page-id="pacientes"] .tabela tbody tr {
   cursor: pointer;
 }
 
-.tabela tbody tr:hover {
+body[data-page-id="pacientes"] .tabela tbody tr:hover {
   background: #eef6ff;
 }
 
-tr.linha-selecionada {
+body[data-page-id="pacientes"] tr.linha-selecionada {
   background: #cde7ff !important;
 }
 
-tr.linha-inativa {
+body[data-page-id="pacientes"] tr.linha-inativa {
   background: #eee;
   color: #777;
 }
@@ -227,12 +234,12 @@ tr.linha-inativa {
   color: #666;
 }
 
-/* BOTÕES */
-.btn {
+/* BOTÕES – animação de hover apenas na página de Pacientes */
+body[data-page-id="pacientes"] .btn {
   transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.1s ease;
 }
 
-.btn:not(:disabled):hover {
+body[data-page-id="pacientes"] .btn:not(:disabled):hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
@@ -242,9 +249,11 @@ tr.linha-inativa {
   .form-grid {
     grid-template-columns: 1fr;
   }
+
   .campo-full {
     grid-column: 1 / 2;
   }
+
   .linha-controles {
     align-items: flex-start;
   }

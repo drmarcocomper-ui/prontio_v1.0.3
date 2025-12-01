@@ -1,0 +1,305 @@
+/* ================================================================
+   PRONTIO - CSS específico da página Prontuário (versão timeline)
+   - Layout profissional de prontuário
+   - Timeline clínica vertical para evoluções
+================================================================ */
+
+/* ============================================================
+   BASE DO MÓDULO
+============================================================ */
+body[data-page-id="prontuario"] {
+  --prontuario-label: #374151;
+  --prontuario-text: #1f2937;
+  --prontuario-subtle: #6b7280;
+  --prontuario-border: #e5e7eb;
+  --prontuario-bg-soft: #f9fafb;
+
+  --timeline-line: #d1d5db;
+  --timeline-dot: #2563eb;
+  --timeline-dot-border: #eff6ff;
+}
+
+body.dark[data-page-id="prontuario"] {
+  --prontuario-label: #e5e7eb;
+  --prontuario-text: #f3f4f6;
+  --prontuario-subtle: #9ca3af;
+  --prontuario-border: #374151;
+  --prontuario-bg-soft: #111827;
+
+  --timeline-line: #4b5563;
+  --timeline-dot: #60a5fa;
+  --timeline-dot-border: #020617;
+}
+
+/* ============================================================
+   TOPBAR – ID do paciente (subtitle)
+============================================================ */
+body[data-page-id="prontuario"] .topbar-paciente-id {
+  font-size: 12px;
+  color: var(--prontuario-subtle);
+}
+
+/* ============================================================
+   CARDS – Subtítulos e layout
+============================================================ */
+body[data-page-id="prontuario"] .card-subtitulo {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--prontuario-subtle);
+}
+
+/* ============================================================
+   BLOCOS DE IDENTIFICAÇÃO DO PACIENTE
+============================================================ */
+body[data-page-id="prontuario"] .dados-paciente-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 200px) 1fr;
+  gap: 10px 20px;
+  font-size: 15px;
+}
+
+body[data-page-id="prontuario"] .campo-label {
+  font-weight: 600;
+  color: var(--prontuario-label);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: 12px;
+}
+
+body[data-page-id="prontuario"] .campo-valor {
+  color: var(--prontuario-text);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Destaque para ID do paciente */
+body[data-page-id="prontuario"] .paciente-id {
+  background: var(--prontuario-bg-soft);
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  font-size: 12px;
+  border: 1px solid var(--prontuario-border);
+}
+
+/* ============================================================
+   RESUMO CLÍNICO (evoluções / receitas / etc.)
+============================================================ */
+body[data-page-id="prontuario"] .resumo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+body[data-page-id="prontuario"] .resumo-bloco h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--prontuario-label);
+}
+
+body[data-page-id="prontuario"] .resumo-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+body[data-page-id="prontuario"] .resumo-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--prontuario-bg-soft);
+  border: 1px solid var(--prontuario-border);
+  margin-bottom: 8px;
+  font-size: 13px;
+  transition: background 0.15s ease, border 0.15s ease, transform 0.1s ease;
+}
+
+body[data-page-id="prontuario"] .resumo-item:hover {
+  background: rgba(0,0,0,0.03);
+  transform: translateY(-1px);
+}
+
+body.dark[data-page-id="prontuario"] .resumo-item:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+body[data-page-id="prontuario"] .resumo-item-titulo {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 2px;
+  color: var(--prontuario-text);
+}
+
+body[data-page-id="prontuario"] .resumo-item-data {
+  font-size: 11px;
+  color: var(--prontuario-subtle);
+}
+
+body[data-page-id="prontuario"] .resumo-item-detalhe {
+  font-size: 12px;
+  color: var(--prontuario-text);
+}
+
+body[data-page-id="prontuario"] .resumo-mensagem-secundaria {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--prontuario-subtle);
+}
+
+/* ============================================================
+   TIMELINE CLÍNICO VERTICAL – EVOLUÇÕES
+============================================================ */
+
+/* Contêiner da timeline */
+body[data-page-id="prontuario"] .lista-evolucoes {
+  list-style: none;
+  padding: 0 0 0 26px;        /* espaço p/ linha e bolinhas */
+  margin: 0;
+  position: relative;
+}
+
+/* Linha vertical da timeline */
+body[data-page-id="prontuario"] .lista-evolucoes::before {
+  content: "";
+  position: absolute;
+  left: 11px;                 /* alinha com o centro das bolinhas */
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgba(209,213,219,0.8),
+    rgba(209,213,219,0.4)
+  );
+  background-color: var(--timeline-line);
+}
+
+/* Cada item de evolução vira um "ponto" na timeline */
+body[data-page-id="prontuario"] .evolucao-item {
+  position: relative;
+  padding: 10px 14px 10px 14px;
+  margin-bottom: 14px;
+  background: var(--prontuario-bg-soft);
+  border: 1px solid var(--prontuario-border);
+  border-radius: 8px;
+  line-height: 1.45;
+  font-size: 14px;
+  transition: border 0.2s ease, background 0.2s ease, box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+/* Bolinha da timeline */
+body[data-page-id="prontuario"] .evolucao-item::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 14px;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--timeline-dot);
+  border: 3px solid var(--timeline-dot-border);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
+/* Efeito hover/seleção */
+body[data-page-id="prontuario"] .evolucao-item:hover {
+  border-color: var(--timeline-dot);
+  box-shadow: 0 4px 10px rgba(15,23,42,0.06);
+  transform: translateY(-1px);
+}
+
+/* Cabeçalho de cada evolução (data / autor / origem) */
+body[data-page-id="prontuario"] .evo-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+body[data-page-id="prontuario"] .evo-data {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--prontuario-label);
+}
+
+body[data-page-id="prontuario"] .evo-autor {
+  font-size: 12px;
+  color: var(--prontuario-subtle);
+}
+
+/* Badge de origem (PRONTUARIO, AGENDA, IMPORTADO, etc) */
+body[data-page-id="prontuario"] .evo-origem.badge {
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: #2563eb20;
+  color: #2563eb;
+  border: 1px solid #2563eb50;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+body.dark[data-page-id="prontuario"] .evo-origem.badge {
+  background: rgba(59,130,246,0.18);
+  color: #bfdbfe;
+  border-color: rgba(59,130,246,0.5);
+}
+
+/* Texto da evolução */
+body[data-page-id="prontuario"] .evo-texto {
+  font-size: 14px;
+  color: var(--prontuario-text);
+  white-space: pre-line;
+}
+
+/* Mensagem de vazio / carregando (centralizada na timeline) */
+body[data-page-id="prontuario"] #listaEvolucoesVazia {
+  margin-left: 4px;
+}
+
+/* ============================================================
+   FORMULÁRIO DE EVOLUÇÃO
+============================================================ */
+body[data-page-id="prontuario"] textarea#textoEvolucao {
+  resize: vertical;
+  min-height: 110px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+/* ============================================================
+   ESTADOS (vazio, carregando)
+============================================================ */
+body[data-page-id="prontuario"] .msg-menor {
+  font-size: 12px;
+  color: var(--prontuario-subtle);
+  padding: 4px 0;
+}
+
+/* ============================================================
+   RESPONSIVIDADE
+============================================================ */
+@media (max-width: 880px) {
+  body[data-page-id="prontuario"] .dados-paciente-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-page-id="prontuario"] .resumo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-page-id="prontuario"] .evo-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  body[data-page-id="prontuario"] .lista-evolucoes {
+    padding-left: 22px;
+  }
+
+  body[data-page-id="prontuario"] .evolucao-item::before {
+    left: -16px;
+  }
+}
