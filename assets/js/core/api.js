@@ -9,7 +9,7 @@
  */
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbzjQKff_QCjpecEzNwXLaEtgFNoUS-vXcV2j1xomA1CD88U4k9PEv3jcPPSmQBScF4BkA/exec";
+  "https://script.google.com/macros/s/AKfycbwGRPf5qbymuOSEGEgxv1hOYkIB6m-dol8t5n1vrOuauzO_2A1WhgXv1eoe4PtpCDAcsg/exec";
 
 /**
  * Chama a API do PRONTIO (backend Apps Script) usando o protocolo padrão:
