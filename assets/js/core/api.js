@@ -1,199 +1,103 @@
 // assets/js/core/api.js
-// Módulo central de chamadas à API do PRONTIO (Google Apps Script)
-//
-// Backend (Apps Script) deve receber JSON (como texto):
-//   { "action": "Agenda.Criar", "payload": { ... } }
-//
-// E sempre responder com JSON no formato:
-//   { "success": true/false, "data": { ... }, "errors": [] }
-//
-// Uso típico (via ES Module):
-//
-//   import { callApi, safeCall, ping } from "../core/api.js";
-//
-//   const resp = await callApi({
-//     action: "Agenda.Criar",
-//     payload: { idPaciente, data: "2025-03-05", hora: "08:00", tipo: "Consulta", obs: "" }
-//   });
-//
-//   const slots = await safeCall("Agenda.ListSlotsOfDay", { data: "2025-03-05" });
-//
-// Uso antigo (ainda suportado, via window.PRONTIO.core.api):
-//
-//   const { callApi, safeCall, ping } = PRONTIO.core.api;
-//   const resp = await callApi({ action: "Pacientes.ListarSelecao", payload: {} });
-
-// ===============================
-// URL OFICIAL DO WEB APP (Apps Script)
-// ===============================
-// Caso gere uma nova versão publicada do Web App, substitua aqui.
-const PRONTIO_API_URL =
-  "https://script.google.com/macros/s/AKfycbyzNAiu6I0AvFATtua5ypNIZT2lRaQ9rddSNXtl6cTnQRhia6bF2ZDosrXUem7vhptLuw/exec";
+// PRONTIO - Módulo de comunicação com a API (Apps Script WebApp)
 
 /**
- * Chama a API do PRONTIO (Google Apps Script)
- * @param {{ action: string, payload?: any }} params
- * @returns {Promise<{ success: boolean, data: any, errors: string[] }>}
+ * IMPORTANTE:
+ * - Substitua a variável API_URL pela URL publicada do seu WebApp:
+ *   Exemplo:
+ *     const API_URL = "https://script.google.com/macros/s/AKfycbx.../exec";
  */
-async function callApiInternal(params) {
-  const { action, payload } = params || {};
 
-  if (!action) {
-    console.error("PRONTIO.core.api.callApi: parâmetro 'action' é obrigatório.");
-    return {
-      success: false,
-      data: null,
-      errors: ["Ação da API não informada."]
-    };
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbzjQKff_QCjpecEzNwXLaEtgFNoUS-vXcV2j1xomA1CD88U4k9PEv3jcPPSmQBScF4BkA/exec";
+
+/**
+ * Chama a API do PRONTIO (backend Apps Script) usando o protocolo padrão:
+ * { action: "Modulo.Funcao", payload: {.} }
+ *
+ * Backend responde:
+ * {
+ *   success: true/false,
+ *   data: {.} ou null,
+ *   errors: [ { code, message, details } ]
+ * }
+ *
+ * Esta função:
+ *  - dispara erros quando success = false
+ *  - retorna json.data quando tudo dá certo
+ *
+ * @param {Object} params
+ * @param {string} params.action
+ * @param {Object} [params.payload]
+ * @returns {Promise<any>} json.data
+ */
+export async function callApi({ action, payload = {} }) {
+  if (!API_URL || API_URL === "SUA_URL_DO_WEBAPP") {
+    console.warn(
+      "%c[PRONTIO] API_URL não configurada em core/api.js",
+      "color:#b91c1c;font-weight:bold"
+    );
   }
 
+  const body = { action, payload };
+
+  let resposta;
   try {
-    const response = await fetch(PRONTIO_API_URL, {
+    // IMPORTANTE PARA CORS:
+    // - usamos Content-Type "text/plain;charset=utf-8" (tipo simples)
+    // - isso evita o preflight OPTIONS na maioria dos navegadores
+    //   e deixa o Apps Script tratar normalmente em e.postData.contents.
+    resposta = await fetch(API_URL, {
       method: "POST",
       headers: {
-        // text/plain para evitar preflight CORS no Apps Script
-        "Content-Type": "text/plain;charset=utf-8"
+        "Content-Type": "text/plain;charset=utf-8",
       },
-      body: JSON.stringify({
-        action,
-        payload: payload || {}
-      })
+      body: JSON.stringify(body),
     });
-
-    if (!response.ok) {
-      console.error(
-        "PRONTIO.core.api.callApi: resposta HTTP não OK",
-        response.status
-      );
-      return {
-        success: false,
-        data: null,
-        errors: [
-          `Erro de comunicação com servidor (HTTP ${response.status}).`
-        ]
-      };
-    }
-
-    let json;
-    try {
-      json = await response.json();
-    } catch (parseError) {
-      console.error(
-        "PRONTIO.core.api.callApi: erro ao fazer parse do JSON de resposta",
-        parseError
-      );
-      return {
-        success: false,
-        data: null,
-        errors: ["Resposta da API não é um JSON válido."]
-      };
-    }
-
-    if (typeof json.success === "undefined") {
-      return {
-        success: false,
-        data: null,
-        errors: ["Resposta da API em formato inesperado."]
-      };
-    }
-
-    if (!Array.isArray(json.errors)) {
-      json.errors = json.errors ? [String(json.errors)] : [];
-    }
-
-    return {
-      success: Boolean(json.success),
-      data: json.data ?? null,
-      errors: json.errors
-    };
   } catch (erro) {
-    console.error("PRONTIO.core.api.callApi: exceção na chamada", erro);
-    return {
-      success: false,
-      data: null,
-      errors: [
-        "Falha ao conectar à API. Verifique sua conexão ou o Apps Script."
-      ]
-    };
-  }
-}
-
-/**
- * Versão "segura": lança erro se não success. Retorna só `data`.
- * @param {string} action
- * @param {any} [payload]
- * @returns {Promise<any>}
- * @throws {Error}
- */
-async function safeCallInternal(action, payload) {
-  const resp = await callApiInternal({ action, payload });
-
-  if (!resp.success) {
-    const msg =
-      (resp.errors && resp.errors[0]) ||
-      `Ação "${action}" falhou sem mensagem específica.`;
-    throw new Error(msg);
+    console.error("[PRONTIO] Erro de rede ao chamar a API:", erro);
+    const e = new Error(
+      "Não foi possível conectar ao servidor (verifique se o WebApp está publicado e se a URL está correta)."
+    );
+    e.code = "NETWORK_ERROR";
+    throw e;
   }
 
-  return resp.data;
-}
-
-/**
- * Função de teste rápido no console:
- *   import { ping } from "../core/api.js";
- *   ping();
- */
-async function pingInternal() {
-  console.log("PRONTIO.core.api.ping: testando conexão com Apps Script...");
-  const resp = await callApiInternal({ action: "ping", payload: {} });
-  console.log("PRONTIO.core.api.ping: resposta:", resp);
-  if (!resp.success) {
-    alert("Ping falhou. Veja detalhes no console (F12).");
-  } else {
-    alert("Ping OK! Veja os detalhes no console (F12).");
+  if (!resposta.ok) {
+    const texto = await resposta.text();
+    console.error(`[PRONTIO] Erro HTTP ${resposta.status}:`, texto);
+    const e = new Error(
+      `Erro na comunicação com a API (HTTP ${resposta.status}).`
+    );
+    e.code = "HTTP_ERROR";
+    throw e;
   }
-  return resp;
+
+  let json;
+  try {
+    json = await resposta.json();
+  } catch (erro) {
+    console.error("[PRONTIO] Erro ao converter JSON:", erro);
+    const raw = await resposta.text();
+    console.error("[PRONTIO] Conteúdo recebido:", raw);
+    const e = new Error("Resposta da API em formato inesperado.");
+    e.code = "INVALID_JSON";
+    throw e;
+  }
+
+  if (!json.success) {
+    const err = (json.errors && json.errors[0]) || {};
+    const e = new Error(err.message || "Erro desconhecido na API.");
+    if (err.code) e.code = err.code;
+    if (err.details) e.details = err.details;
+    console.error("[PRONTIO] Erro retornado pela API:", err);
+    throw e;
+  }
+
+  return json.data;
 }
 
-// ===============================
-// EXPORTS (ES MODULE)
-// ===============================
-
-/**
- * Wrapper público para chamadas à API.
- * @param {{ action: string, payload?: any }} params
- */
-export async function callApi(params) {
-  return callApiInternal(params);
-}
-
-/**
- * Wrapper público "seguro": já lança erro se não success.
- * @param {string} action
- * @param {any} [payload]
- */
-export async function safeCall(action, payload) {
-  return safeCallInternal(action, payload);
-}
-
-/**
- * Teste rápido de conectividade com o Apps Script.
- */
-export async function ping() {
-  return pingInternal();
-}
-
-// ===============================
-// RETROCOMPATIBILIDADE COM window.PRONTIO
-// ===============================
-try {
-  window.PRONTIO = window.PRONTIO || {};
-  window.PRONTIO.core = window.PRONTIO.core || {};
-  window.PRONTIO.core.api = {
-    callApi: callApiInternal,
-    safeCall: safeCallInternal,
-    ping: pingInternal
-  };
-} catch (e) {
-  // ambiente sem window (ex: testes), ignora
+// Expor globalmente (útil para debug no console do DevTools)
+if (typeof window !== "undefined") {
+  window.callApi = callApi;
 }

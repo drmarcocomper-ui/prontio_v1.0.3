@@ -1,553 +1,902 @@
 /**
- * Agenda.gs
+ * PRONTIO - Módulo de Agenda
  *
- * Estrutura fixa das planilhas:
+ * Colunas esperadas na aba Agenda (linha 1):
  *
- * ABA "Agenda"
- *  Col A: ID_Agenda
- *  Col B: ID_Paciente
- *  Col C: DataConsulta  (YYYY-MM-DD, DD/MM/YYYY ou Date)
- *  Col D: HoraConsulta  (HH:MM ou H:MM)
- *  Col E: Tipo
- *  Col F: Observacoes
- *  Col G: Status        (AGENDADO, CONFIRMADO, CANCELADO, BLOQUEADO, etc.)
- *  Col H: DataCriacao   (Date)
- *
- * ABA "Pacientes"
- *  Col A: ID_Paciente
- *  Col B: NomeCompleto
+ * ID_Agenda | Data | Hora_Inicio | Hora_Fim | Duracao_Minutos | ID_Paciente | Nome_Paciente |
+ * Documento_Paciente | Telefone_Paciente | Tipo | Motivo | Status | Origem | Canal |
+ * ID_Sala | Profissional | Bloqueio | Descricao_Bloqueio | Permite_Encaixe | Created_At | Updated_At
  */
 
-var AGENDA_SHEET_NAME    = "Agenda";
-var PACIENTES_SHEET_NAME = "Pacientes";
-var CONFIG_AGENDA_SHEET_NAME = "ConfigAgenda";
+var AGENDA_SHEET_NAME = 'Agenda';
 
-// Índices 0-based das colunas na aba AGENDA (linhas de dados, NÃO cabeçalho)
-var AGENDA_COL = {
-  ID_AGENDA:   0, // A
-  ID_PACIENTE: 1, // B
-  DATA:        2, // C - DataConsulta
-  HORA:        3, // D - HoraConsulta
-  TIPO:        4, // E
-  OBS:         5, // F - Observacoes
-  STATUS:      6, // G
-  DATACRIACAO: 7  // H
+// Mapeamento de colunas (1-based index)
+var AGENDA_COLS = {
+  ID_Agenda: 1,
+  Data: 2,
+  Hora_Inicio: 3,
+  Hora_Fim: 4,
+  Duracao_Minutos: 5,
+  ID_Paciente: 6,
+  Nome_Paciente: 7,
+  Documento_Paciente: 8,
+  Telefone_Paciente: 9,
+  Tipo: 10,
+  Motivo: 11,
+  Status: 12,
+  Origem: 13,
+  Canal: 14,
+  ID_Sala: 15,
+  Profissional: 16,
+  Bloqueio: 17,
+  Descricao_Bloqueio: 18,
+  Permite_Encaixe: 19,
+  Created_At: 20,
+  Updated_At: 21
 };
-
-// Índices 0-based das colunas na aba PACIENTES (linhas de dados, NÃO cabeçalho)
-var PAC_COL = {
-  ID_PACIENTE: 0, // A
-  NOME:        1  // B - NomeCompleto
-};
-
-/* ============================================================================
- * ACTION: Agenda.ListSlotsOfDay
- * ============================================================================
- */
 
 /**
- * action: "Agenda.ListSlotsOfDay"
- * payload: { data: "YYYY-MM-DD" }
+ * Roteador interno da Agenda.
  */
-function Agenda_ListSlotsOfDay(payload) {
-  var dataISO = payload && payload.data ? String(payload.data) : null;
-  if (!dataISO) {
-    throw new Error("Agenda.ListSlotsOfDay: payload.data (YYYY-MM-DD) obrigatório.");
+function handleAgendaAction(action, payload) {
+  switch (action) {
+    case 'Agenda_ListarDia':
+      return agendaListarDia_(payload);
+
+    case 'Agenda_ListarSemana':
+      return agendaListarSemana_(payload);
+
+    case 'Agenda_Criar':
+      return agendaCriar_(payload);
+
+    case 'Agenda_Atualizar':
+      return agendaAtualizar_(payload);
+
+    case 'Agenda_MudarStatus':
+      return agendaMudarStatus_(payload);
+
+    case 'Agenda_BloquearHorario':
+      return agendaBloquearHorario_(payload);
+
+    case 'Agenda_RemoverBloqueio':
+      return agendaRemoverBloqueio_(payload);
+
+    default:
+      throw {
+        code: 'AGENDA_UNKNOWN_ACTION',
+        message: 'Ação de agenda desconhecida: ' + action
+      };
   }
-
-  var cfg = getConfigAgenda_();
-  var agendamentos = listarAgendamentosDoDia_(dataISO);
-  var resultado = montarSlotsDoDia_(dataISO, agendamentos, cfg);
-
-  return resultado;
 }
 
-/* ============================================================================
- * ACTION: Agenda.Criar
- * ============================================================================
- */
-
 /**
- * action: "Agenda.Criar"
- * payload:
- * {
- *   idPaciente: "P-0001",
- *   data: "YYYY-MM-DD",
- *   hora: "HH:MM",
- *   tipo: "Retorno",
- *   obs: "observações",
- *   status: "AGENDADO" (opcional)
- * }
+ * Obtém a planilha da Agenda.
  */
-function Agenda_Criar(payload) {
-  if (!payload) {
-    throw new Error("Agenda.Criar: payload vazio.");
-  }
-
-  var idPaciente = payload.idPaciente;
-  var dataISO    = payload.data;
-  var hora       = payload.hora;
-
-  if (!idPaciente || !dataISO || !hora) {
-    throw new Error("Agenda.Criar: idPaciente, data e hora são obrigatórios.");
-  }
-
-  var tipo   = payload.tipo   || "";
-  var obs    = payload.obs    || "";
-  var status = payload.status || "AGENDADO";
-
-  var ss    = SpreadsheetApp.getActive();
+function getAgendaSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(AGENDA_SHEET_NAME);
   if (!sheet) {
-    throw new Error('Planilha "Agenda" não encontrada.');
+    throw {
+      code: 'AGENDA_SHEET_NOT_FOUND',
+      message: 'Aba "Agenda" não encontrada na planilha.'
+    };
+  }
+  return sheet;
+}
+
+/**
+ * Cria um novo agendamento (consulta normal).
+ *
+ * - Verifica BLOQUEIO de horário
+ * - Verifica CONFLITO com outras CONSULTAS (se não for encaixe)
+ */
+function agendaCriar_(payload) {
+  if (!payload.data) {
+    throw {
+      code: 'AGENDA_MISSING_DATA',
+      message: 'Campo "data" é obrigatório.'
+    };
+  }
+  if (!payload.hora_inicio) {
+    throw {
+      code: 'AGENDA_MISSING_HORA_INICIO',
+      message: 'Campo "hora_inicio" é obrigatório.'
+    };
   }
 
+  var duracaoMin = payload.duracao_minutos || 15;
+  var horaFim = addMinutesToTime_(payload.hora_inicio, duracaoMin);
+  var permiteEncaixe = payload.permite_encaixe === true;
+
+  var sheet = getAgendaSheet_();
   var lastRow = sheet.getLastRow();
-  var now     = new Date();
+  var nextRow = lastRow + 1;
 
-  var idAgenda = gerarIdAgenda_(sheet, lastRow);
+  // 1) BLOQUEIO
+  verificarConflitoBloqueio_(sheet, payload.data, payload.hora_inicio, horaFim, null);
 
-  // linha de dados (após cabeçalho)
-  var linha = lastRow + 1;
-  var valores = [];
-  valores[AGENDA_COL.ID_AGENDA]   = idAgenda;
-  valores[AGENDA_COL.ID_PACIENTE] = idPaciente;
-  valores[AGENDA_COL.DATA]        = dataISO;                     // já vem ISO
-  valores[AGENDA_COL.HORA]        = normalizarHoraHHMM_(hora);   // garante HH:MM
-  valores[AGENDA_COL.TIPO]        = tipo;
-  valores[AGENDA_COL.OBS]         = obs;
-  valores[AGENDA_COL.STATUS]      = status;
-  valores[AGENDA_COL.DATACRIACAO] = now;
+  // 2) CONSULTA x CONSULTA (se não for encaixe)
+  verificarConflitoConsulta_(sheet, payload.data, payload.hora_inicio, horaFim, permiteEncaixe, null);
 
-  // garante 8 colunas
-  for (var i = 0; i < 8; i++) {
-    if (valores[i] === undefined) valores[i] = "";
-  }
+  var idAgenda = generateAgendaId_(payload.data, sheet);
+  var now = new Date();
 
-  sheet.getRange(linha, 1, 1, 8).setValues([valores]);
+  var rowValues = [];
+  rowValues[AGENDA_COLS.ID_Agenda - 1] = idAgenda;
+  rowValues[AGENDA_COLS.Data - 1] = payload.data;
+  rowValues[AGENDA_COLS.Hora_Inicio - 1] = payload.hora_inicio;
+  rowValues[AGENDA_COLS.Hora_Fim - 1] = horaFim;
+  rowValues[AGENDA_COLS.Duracao_Minutos - 1] = duracaoMin;
+  rowValues[AGENDA_COLS.ID_Paciente - 1] = payload.ID_Paciente || '';
+  rowValues[AGENDA_COLS.Nome_Paciente - 1] = payload.nome_paciente || '';
+  rowValues[AGENDA_COLS.Documento_Paciente - 1] = payload.documento_paciente || '';
+  rowValues[AGENDA_COLS.Telefone_Paciente - 1] = payload.telefone_paciente || '';
+  rowValues[AGENDA_COLS.Tipo - 1] = payload.tipo || '';
+  rowValues[AGENDA_COLS.Motivo - 1] = payload.motivo || '';
+  rowValues[AGENDA_COLS.Status - 1] = payload.status || 'Agendado';
+  rowValues[AGENDA_COLS.Origem - 1] = payload.origem || '';
+  rowValues[AGENDA_COLS.Canal - 1] = payload.canal || '';
+  rowValues[AGENDA_COLS.ID_Sala - 1] = payload.ID_Sala || '';
+  rowValues[AGENDA_COLS.Profissional - 1] = payload.profissional || '';
+  rowValues[AGENDA_COLS.Bloqueio - 1] = false;
+  rowValues[AGENDA_COLS.Descricao_Bloqueio - 1] = '';
+  rowValues[AGENDA_COLS.Permite_Encaixe - 1] = permiteEncaixe;
+  rowValues[AGENDA_COLS.Created_At - 1] = now;
+  rowValues[AGENDA_COLS.Updated_At - 1] = now;
 
-  return {
-    idAgenda: idAgenda,
-    data: dataISO,
-    hora: normalizarHoraHHMM_(hora)
-  };
+  sheet.getRange(nextRow, 1, 1, rowValues.length).setValues([rowValues]);
+
+  return agendaRowToObject_(rowValues);
 }
 
-/* ============================================================================
- * ACTION: Agenda.Atualizar
- * ============================================================================
- */
-
 /**
- * action: "Agenda.Atualizar"
- * payload:
+ * Atualiza um agendamento existente.
+ *
+ * payload (exemplo):
  * {
- *   idAgenda: "AG-000123",
- *   idPaciente: "P-0001" (opcional),
- *   data: "YYYY-MM-DD" (opcional),
- *   hora: "HH:MM" (opcional),
- *   tipo: "Retorno" (opcional),
- *   obs: "..." (opcional),
- *   status: "CONFIRMADO" / "CANCELADO" / ... (opcional)
+ *   "ID_Agenda": "AG20250101-0001",
+ *   "data": "2025-01-02",
+ *   "hora_inicio": "15:00",
+ *   "duracao_minutos": 30,
+ *   "tipo": "Retorno",
+ *   "motivo": "...",
+ *   "origem": "WhatsApp",
+ *   "canal": "Convênio X",
+ *   "ID_Paciente": "PAC000123",         // opcional (para trocar paciente)
+ *   "nome_paciente": "...",             // opcional
+ *   "documento_paciente": "...",        // opcional
+ *   "telefone_paciente": "..."          // opcional
  * }
  */
-function Agenda_Atualizar(payload) {
-  if (!payload || !payload.idAgenda) {
-    throw new Error("Agenda.Atualizar: idAgenda é obrigatório.");
+function agendaAtualizar_(payload) {
+  var id = payload && payload.ID_Agenda ? String(payload.ID_Agenda) : '';
+  if (!id) {
+    throw {
+      code: 'AGENDA_MISSING_ID_AGENDA',
+      message: 'Campo "ID_Agenda" é obrigatório para atualizar agendamento.'
+    };
   }
 
-  var idAgenda = String(payload.idAgenda);
-
-  var ss    = SpreadsheetApp.getActive();
-  var sheet = ss.getSheetByName(AGENDA_SHEET_NAME);
-  if (!sheet) {
-    throw new Error('Planilha "Agenda" não encontrada.');
-  }
-
+  var sheet = getAgendaSheet_();
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) {
-    throw new Error("Agenda.Atualizar: não há registros na agenda.");
+    throw {
+      code: 'AGENDA_EMPTY',
+      message: 'Não há registros na agenda.'
+    };
   }
 
-  var range = sheet.getRange(2, 1, lastRow - 1, 8); // dados sem cabeçalho
-  var data  = range.getValues();
+  var idCol = AGENDA_COLS.ID_Agenda;
+  var rangeIds = sheet.getRange(2, idCol, lastRow - 1, 1);
+  var valuesIds = rangeIds.getValues();
 
-  var rowIndex = -1; // índice dentro de "data" (0 = linha 2 do sheet)
-  for (var i = 0; i < data.length; i++) {
-    if (String(data[i][AGENDA_COL.ID_AGENDA] || "") === idAgenda) {
-      rowIndex = i;
+  var rowIndex = null;
+  for (var i = 0; i < valuesIds.length; i++) {
+    var cellValue = String(valuesIds[i][0] || '');
+    if (cellValue === id) {
+      rowIndex = i + 2;
       break;
     }
   }
 
-  if (rowIndex === -1) {
-    throw new Error("Agenda.Atualizar: ID_Agenda não encontrado: " + idAgenda);
-  }
-
-  var row = data[rowIndex];
-
-  if (payload.idPaciente != null) {
-    row[AGENDA_COL.ID_PACIENTE] = payload.idPaciente;
-  }
-  if (payload.data != null) {
-    row[AGENDA_COL.DATA] = payload.data;
-  }
-  if (payload.hora != null) {
-    row[AGENDA_COL.HORA] = normalizarHoraHHMM_(payload.hora);
-  }
-  if (payload.tipo != null) {
-    row[AGENDA_COL.TIPO] = payload.tipo;
-  }
-  if (payload.obs != null) {
-    row[AGENDA_COL.OBS] = payload.obs;
-  }
-  if (payload.status != null) {
-    row[AGENDA_COL.STATUS] = payload.status;
-  }
-
-  // grava de volta apenas a linha alterada
-  sheet.getRange(2 + rowIndex, 1, 1, 8).setValues([row]);
-
-  return { idAgenda: idAgenda };
-}
-
-/* ============================================================================
- * CONFIGURAÇÃO DE AGENDA (horário de trabalho)
- * ============================================================================
- */
-
-function getConfigAgenda_() {
-  var cfg = {
-    inicio: "08:00",
-    fim: "18:00",
-    intervaloMin: 30
-  };
-
-  var ss    = SpreadsheetApp.getActive();
-  var sheet = ss.getSheetByName(CONFIG_AGENDA_SHEET_NAME);
-  if (!sheet) {
-    return cfg;
-  }
-
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    return cfg;
-  }
-
-  var values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
-  values.forEach(function (row) {
-    var chave = String(row[0] || "").toLowerCase().trim();
-    var valor = row[1];
-
-    if (!chave) return;
-
-    switch (chave) {
-      case "inicio_jornada":
-        if (valor) cfg.inicio = String(valor);
-        break;
-      case "fim_jornada":
-        if (valor) cfg.fim = String(valor);
-        break;
-      case "intervalo_minutos":
-        var n = parseInt(valor, 10);
-        if (!isNaN(n) && n > 0) {
-          cfg.intervaloMin = n;
-        }
-        break;
-    }
-  });
-
-  return cfg;
-}
-
-/* ============================================================================
- * PACIENTES: buscar nome pelo ID (usando estrutura fixa)
- * ============================================================================
- */
-
-function buscarNomePacientePorId_(idPaciente) {
-  if (!idPaciente) return "";
-
-  var ss    = SpreadsheetApp.getActive();
-  var sheet = ss.getSheetByName(PACIENTES_SHEET_NAME);
-  if (!sheet) {
-    return "";
-  }
-
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    return "";
-  }
-
-  var range = sheet.getRange(2, 1, lastRow - 1, 2); // A:B
-  var data  = range.getValues();
-
-  for (var i = 0; i < data.length; i++) {
-    var rowId = String(data[i][PAC_COL.ID_PACIENTE] || "");
-    if (rowId === String(idPaciente)) {
-      var nome = String(data[i][PAC_COL.NOME] || "");
-      return nome;
-    }
-  }
-
-  return "";
-}
-
-/* ============================================================================
- * LEITURA DE AGENDAMENTOS DO DIA (usando colunas fixas)
- * ============================================================================
- */
-
-function listarAgendamentosDoDia_(dataISO) {
-  var ss    = SpreadsheetApp.getActive();
-  var sheet = ss.getSheetByName(AGENDA_SHEET_NAME);
-  if (!sheet) {
-    return [];
-  }
-
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    return [];
-  }
-
-  var range = sheet.getRange(2, 1, lastRow - 1, 8); // A:H sem cabeçalho
-  var data  = range.getValues();
-
-  var resultado = [];
-  for (var i = 0; i < data.length; i++) {
-    var row = data[i];
-
-    var rawData = row[AGENDA_COL.DATA];
-    if (!rawData) continue;
-
-    var rowDataISO = normalizarDataISO_(rawData);
-    if (rowDataISO !== dataISO) continue;
-
-    var rawHora    = row[AGENDA_COL.HORA];
-    var horaNorm   = normalizarHoraHHMM_(rawHora);
-
-    var idPaciente = String(row[AGENDA_COL.ID_PACIENTE] || "");
-    var nomePaciente = idPaciente ? (buscarNomePacientePorId_(idPaciente) || "") : "";
-
-    var ag = {
-      idAgenda:      String(row[AGENDA_COL.ID_AGENDA] || ""),
-      dataISO:       rowDataISO,
-      hora:          horaNorm,
-      idPaciente:    idPaciente,
-      paciente_nome: nomePaciente,
-      tipo:          String(row[AGENDA_COL.TIPO] || ""),
-      status:        String(row[AGENDA_COL.STATUS] || "AGENDADO"),
-      observacoes:   String(row[AGENDA_COL.OBS] || "")
+  if (!rowIndex) {
+    throw {
+      code: 'AGENDA_ID_NOT_FOUND',
+      message: 'Agendamento não encontrado para ID_Agenda: ' + id
     };
-
-    resultado.push(ag);
   }
 
-  return resultado;
+  var rowRange = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn());
+  var row = rowRange.getValues()[0];
+
+  // Valores atuais
+  var dataAtual = row[AGENDA_COLS.Data - 1];
+  var horaInicioAtual = row[AGENDA_COLS.Hora_Inicio - 1];
+  var duracaoAtual = Number(row[AGENDA_COLS.Duracao_Minutos - 1] || 0);
+  var permiteEncaixeAtual = row[AGENDA_COLS.Permite_Encaixe - 1] === true;
+
+  var dataStrAtual =
+    dataAtual instanceof Date
+      ? Utilities.formatDate(
+          dataAtual,
+          Session.getScriptTimeZone(),
+          'yyyy-MM-dd'
+        )
+      : String(dataAtual || '');
+
+  // Novos valores (usando o atual como padrão)
+  var novaData = payload.data || dataStrAtual;
+  var novaHoraInicio = payload.hora_inicio || String(horaInicioAtual || '00:00');
+  var novaDuracao = payload.duracao_minutos
+    ? Number(payload.duracao_minutos)
+    : duracaoAtual || 15;
+
+  var novaHoraFim = addMinutesToTime_(novaHoraInicio, novaDuracao);
+
+  var novoPermiteEncaixe =
+    typeof payload.permite_encaixe !== 'undefined'
+      ? payload.permite_encaixe === true
+      : permiteEncaixeAtual;
+
+  // Verifica conflitos ignorando o próprio registro (ignoreId = id)
+  verificarConflitoBloqueio_(sheet, novaData, novaHoraInicio, novaHoraFim, id);
+  verificarConflitoConsulta_(sheet, novaData, novaHoraInicio, novaHoraFim, novoPermiteEncaixe, id);
+
+  function set(colName, value) {
+    row[AGENDA_COLS[colName] - 1] = value;
+  }
+
+  // Data / hora / duração
+  set('Data', novaData);
+  set('Hora_Inicio', novaHoraInicio);
+  set('Hora_Fim', novaHoraFim);
+  set('Duracao_Minutos', novaDuracao);
+
+  // Atualização de paciente (opcional)
+  if (typeof payload.ID_Paciente !== 'undefined') {
+    set('ID_Paciente', payload.ID_Paciente || '');
+    set('Nome_Paciente', payload.nome_paciente || '');
+    set('Documento_Paciente', payload.documento_paciente || '');
+    set('Telefone_Paciente', payload.telefone_paciente || '');
+  }
+
+  // Campos opcionais de edição simples
+  if (typeof payload.tipo !== 'undefined') set('Tipo', payload.tipo || '');
+  if (typeof payload.motivo !== 'undefined') set('Motivo', payload.motivo || '');
+  if (typeof payload.origem !== 'undefined') set('Origem', payload.origem || '');
+  if (typeof payload.canal !== 'undefined') set('Canal', payload.canal || '');
+  if (typeof payload.ID_Sala !== 'undefined') set('ID_Sala', payload.ID_Sala || '');
+  if (typeof payload.profissional !== 'undefined') set('Profissional', payload.profissional || '');
+  if (typeof payload.permite_encaixe !== 'undefined') set('Permite_Encaixe', novoPermiteEncaixe);
+
+  set('Updated_At', new Date());
+
+  rowRange.setValues([row]);
+
+  return agendaRowToObject_(row);
 }
 
-/* ============================================================================
- * MONTAR GRADE DE SLOTS
- *  - CANCELADO: libera o horário (entra como LIVRE)
- * ============================================================================
+/**
+ * Cria um BLOQUEIO de horário (sem motivo).
  */
-
-function montarSlotsDoDia_(dataISO, agendamentos, cfg) {
-  cfg = cfg || getConfigAgenda_();
-
-  var inicioMin  = horaParaMinutos_(cfg.inicio || "08:00");
-  var fimMin     = horaParaMinutos_(cfg.fim    || "18:00");
-  var intervalo  = cfg.intervaloMin || 30;
-
-  // mapa: "HH:MM" -> agendamento (apenas NÃO cancelados)
-  var mapaPorHora = {};
-  var cancelados  = 0;
-
-  agendamentos.forEach(function (ag) {
-    var h = ag.hora || "";
-    if (!h) return;
-
-    var statusUpper = (ag.status || "AGENDADO").toUpperCase();
-
-    if (statusUpper === "CANCELADO") {
-      // conta cancelados, mas NÃO ocupa o horário → ele ficará LIVRE
-      cancelados++;
-      return;
-    }
-
-    // outros status (AGENDADO, CONFIRMADO, BLOQUEADO etc.) ocupam o horário
-    mapaPorHora[h] = ag;
-  });
-
-  var slots         = [];
-  var total         = 0;
-  var ocupados      = 0;
-  var livres        = 0;
-  var bloqueados    = 0;
-  var primeiroLivre = null;
-
-  for (var t = inicioMin; t < fimMin; t += intervalo) {
-    var horaStr = minutosParaHora_(t);
-
-    var slot = {
-      hora:          horaStr,
-      status:        "LIVRE",
-      status_humano: "Livre",
-      id_agenda:     "",
-      id_paciente:   "",
-      paciente_nome: "",
-      tipo:          "",
-      observacoes:   ""
+function agendaBloquearHorario_(payload) {
+  if (!payload.data) {
+    throw {
+      code: 'AGENDA_BLOQ_MISSING_DATA',
+      message: 'Campo "data" é obrigatório para bloquear horário.'
     };
-
-    var agendamento = mapaPorHora[horaStr];
-
-    if (agendamento) {
-      var statusUpper = (agendamento.status || "AGENDADO").toUpperCase();
-
-      slot.id_agenda     = agendamento.idAgenda   || "";
-      slot.id_paciente   = agendamento.idPaciente || "";
-      slot.paciente_nome = agendamento.paciente_nome || "";
-      slot.tipo          = agendamento.tipo || "";
-      slot.observacoes   = agendamento.observacoes || "";
-
-      if (statusUpper === "BLOQUEADO") {
-        slot.status        = "BLOQUEADO";
-        slot.status_humano = "Bloqueado";
-        bloqueados++;
-      } else {
-        // AGENDADO, CONFIRMADO, etc. (CANCELADO já foi filtrado antes)
-        slot.status        = "OCUPADO";
-        slot.status_humano = agendamento.status || "Agendado";
-        ocupados++;
-      }
-    } else {
-      // LIVRE
-      livres++;
-      if (!primeiroLivre) {
-        primeiroLivre = horaStr;
-      }
-    }
-
-    total++;
-    slots.push(slot);
+  }
+  if (!payload.hora_inicio) {
+    throw {
+      code: 'AGENDA_BLOQ_MISSING_HORA_INICIO',
+      message: 'Campo "hora_inicio" é obrigatório para bloquear horário.'
+    };
   }
 
-  var resumo = {
-    data:           dataISO,
-    total_slots:    total,
-    ocupados:       ocupados,
-    livres:         livres,
-    bloqueados:     bloqueados,
-    cancelados:     cancelados,   // quantidade de cancelamentos no dia
-    primeiro_livre: primeiroLivre
-  };
+  var duracaoMin = payload.duracao_minutos || 60; // padrão 60 min
+  var horaFim = addMinutesToTime_(payload.hora_inicio, duracaoMin);
+
+  var sheet = getAgendaSheet_();
+  var lastRow = sheet.getLastRow();
+  var nextRow = lastRow + 1;
+
+  var idAgenda = generateAgendaId_(payload.data, sheet);
+  var now = new Date();
+
+  var rowValues = [];
+  rowValues[AGENDA_COLS.ID_Agenda - 1] = idAgenda;
+  rowValues[AGENDA_COLS.Data - 1] = payload.data;
+  rowValues[AGENDA_COLS.Hora_Inicio - 1] = payload.hora_inicio;
+  rowValues[AGENDA_COLS.Hora_Fim - 1] = horaFim;
+  rowValues[AGENDA_COLS.Duracao_Minutos - 1] = duracaoMin;
+  rowValues[AGENDA_COLS.ID_Paciente - 1] = '';
+  rowValues[AGENDA_COLS.Nome_Paciente - 1] = '';
+  rowValues[AGENDA_COLS.Documento_Paciente - 1] = '';
+  rowValues[AGENDA_COLS.Telefone_Paciente - 1] = '';
+  rowValues[AGENDA_COLS.Tipo - 1] = '';
+  rowValues[AGENDA_COLS.Motivo - 1] = '';
+  rowValues[AGENDA_COLS.Status - 1] = 'Bloqueado';
+  rowValues[AGENDA_COLS.Origem - 1] = '';
+  rowValues[AGENDA_COLS.Canal - 1] = '';
+  rowValues[AGENDA_COLS.ID_Sala - 1] = '';
+  rowValues[AGENDA_COLS.Profissional - 1] = '';
+  rowValues[AGENDA_COLS.Bloqueio - 1] = true;
+  rowValues[AGENDA_COLS.Descricao_Bloqueio - 1] = '';
+  rowValues[AGENDA_COLS.Permite_Encaixe - 1] = false;
+  rowValues[AGENDA_COLS.Created_At - 1] = now;
+  rowValues[AGENDA_COLS.Updated_At - 1] = now;
+
+  sheet.getRange(nextRow, 1, 1, rowValues.length).setValues([rowValues]);
+
+  return agendaRowToObject_(rowValues);
+}
+
+/**
+ * Remove um registro de BLOQUEIO (apaga a linha).
+ */
+function agendaRemoverBloqueio_(payload) {
+  var id = payload && payload.ID_Agenda ? String(payload.ID_Agenda) : '';
+  if (!id) {
+    throw {
+      code: 'AGENDA_REM_BLOQ_MISSING_ID',
+      message: 'Campo "ID_Agenda" é obrigatório para remover bloqueio.'
+    };
+  }
+
+  var sheet = getAgendaSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    throw {
+      code: 'AGENDA_EMPTY',
+      message: 'Não há registros na agenda.'
+    };
+  }
+
+  var idCol = AGENDA_COLS.ID_Agenda;
+  var rangeIds = sheet.getRange(2, idCol, lastRow - 1, 1);
+  var valuesIds = rangeIds.getValues();
+
+  var rowIndex = null;
+  for (var i = 0; i < valuesIds.length; i++) {
+    var cellValue = String(valuesIds[i][0] || '');
+    if (cellValue === id) {
+      rowIndex = i + 2;
+      break;
+    }
+  }
+
+  if (!rowIndex) {
+    throw {
+      code: 'AGENDA_ID_NOT_FOUND',
+      message: 'Registro não encontrado para ID_Agenda: ' + id
+    };
+  }
+
+  var isBloqueio = sheet
+    .getRange(rowIndex, AGENDA_COLS.Bloqueio)
+    .getValue() === true;
+
+  if (!isBloqueio) {
+    throw {
+      code: 'AGENDA_NOT_BLOQUEIO',
+      message: 'Registro com este ID não é um bloqueio de horário.'
+    };
+  }
+
+  sheet.deleteRow(rowIndex);
 
   return {
-    data:  dataISO,
-    slots: slots,
+    ID_Agenda: id,
+    removed: true
+  };
+}
+
+/**
+ * Lista os agendamentos de um determinado dia.
+ */
+function agendaListarDia_(payload) {
+  if (!payload.data) {
+    throw {
+      code: 'AGENDA_MISSING_DATA',
+      message: 'Campo "data" é obrigatório para listar o dia.'
+    };
+  }
+
+  var dataAlvo = payload.data; // "YYYY-MM-DD"
+
+  var sheet = getAgendaSheet_();
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    return {
+      horarios: [],
+      resumo: {
+        total: 0,
+        confirmados: 0,
+        faltas: 0,
+        cancelados: 0,
+        concluidos: 0,
+        em_atendimento: 0
+      }
+    };
+  }
+
+  var range = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn());
+  var values = range.getValues();
+
+  var horariosMap = {};
+  var resumo = {
+    total: 0,
+    confirmados: 0,
+    faltas: 0,
+    cancelados: 0,
+    concluidos: 0,
+    em_atendimento: 0
+  };
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    var rowData = agendaRowToObject_(row);
+
+    if (rowData.data !== dataAlvo) continue;
+
+    if (!rowData.bloqueio) {
+      resumo.total++;
+
+      var status = (rowData.status || '').toLowerCase();
+      if (status === 'confirmado' || status === 'confirmada') {
+        resumo.confirmados++;
+      } else if (status === 'faltou' || status === 'falta') {
+        resumo.faltas++;
+      } else if (status === 'cancelado' || status === 'cancelada') {
+        resumo.cancelados++;
+      } else if (status.indexOf('conclu') !== -1) {
+        resumo.concluidos++;
+      }
+
+      if (status.indexOf('atendimento') !== -1) {
+        resumo.em_atendimento++;
+      }
+    }
+
+    var hora = rowData.hora_inicio;
+
+    if (!horariosMap[hora]) {
+      horariosMap[hora] = [];
+    }
+
+    horariosMap[hora].push(rowData);
+  }
+
+  var horas = Object.keys(horariosMap);
+  horas.sort(compareTimeStrings_);
+
+  var horariosArray = horas.map(function (hora) {
+    return {
+      hora: hora,
+      agendamentos: horariosMap[hora]
+    };
+  });
+
+  return {
+    horarios: horariosArray,
     resumo: resumo
   };
 }
 
-/* ============================================================================
- * HORA / MINUTOS + NORMALIZAÇÕES
- * ============================================================================
+/**
+ * Lista a semana (segunda a sábado) contendo a data de referência.
+ *
+ * payload:
+ * {
+ *   "data_referencia": "2025-02-10"
+ * }
+ *
+ * Retorno:
+ * {
+ *   "dias": [
+ *     { "data": "2025-02-10", "horarios": [...], "resumo": {...} },
+ *     ...
+ *   ]
+ * }
  */
+function agendaListarSemana_(payload) {
+  var dataRef = payload && payload.data_referencia ? String(payload.data_referencia) : '';
+  if (!dataRef) {
+    throw {
+      code: 'AGENDA_MISSING_DATA_REFERENCIA',
+      message: 'Campo "data_referencia" é obrigatório para listar a semana.'
+    };
+  }
 
-function horaParaMinutos_(hhmm) {
-  if (!hhmm) return 0;
-  var partes = String(hhmm).split(":");
-  var h = parseInt(partes[0], 10) || 0;
-  var m = parseInt(partes[1], 10) || 0;
-  return h * 60 + m;
-}
+  var parts = dataRef.split('-');
+  if (parts.length !== 3) {
+    throw {
+      code: 'AGENDA_DATA_REFERENCIA_INVALIDA',
+      message: 'data_referencia inválida (use formato YYYY-MM-DD).'
+    };
+  }
 
-function minutosParaHora_(min) {
-  var h = Math.floor(min / 60);
-  var m = min % 60;
-  var hh = h < 10 ? "0" + h : String(h);
-  var mm = m < 10 ? "0" + m : String(m);
-  return hh + ":" + mm;
+  var ano = parseInt(parts[0], 10);
+  var mes = parseInt(parts[1], 10) - 1;
+  var dia = parseInt(parts[2], 10);
+  var refDate = new Date(ano, mes, dia);
+
+  // Queremos semana de segunda (1) a sábado (6).
+  var jsDay = refDate.getDay(); // 0=domingo, 1=segunda...
+  var offset = (jsDay + 6) % 7; // transforma segunda em 0
+  var monday = new Date(refDate);
+  monday.setDate(refDate.getDate() - offset);
+
+  var dias = [];
+
+  for (var i = 0; i < 6; i++) { // segunda a sábado
+    var d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+
+    var dStr = formatDateToInput_(d);
+    var diaData = agendaListarDia_({ data: dStr });
+
+    dias.push({
+      data: dStr,
+      horarios: diaData.horarios,
+      resumo: diaData.resumo
+    });
+  }
+
+  return { dias: dias };
 }
 
 /**
- * Normaliza qualquer representação de hora para "HH:MM"
+ * Muda apenas o status de um agendamento.
  */
-function normalizarHoraHHMM_(valor) {
-  if (!valor && valor !== 0) return "";
+function agendaMudarStatus_(payload) {
+  var id = payload && payload.ID_Agenda ? String(payload.ID_Agenda) : '';
+  var novoStatus = payload && payload.novo_status ? String(payload.novo_status) : '';
 
-  // Se for Date
-  if (Object.prototype.toString.call(valor) === "[object Date]") {
-    var h = valor.getHours();
-    var m = valor.getMinutes();
-    return minutosParaHora_(h * 60 + m);
+  if (!id) {
+    throw {
+      code: 'AGENDA_MISSING_ID_AGENDA',
+      message: 'Campo "ID_Agenda" é obrigatório para mudar status.'
+    };
   }
 
-  var str = String(valor).trim();
-  if (!str) return "";
-
-  var partes = str.split(":");
-  var h = parseInt(partes[0], 10) || 0;
-  var m = partes.length > 1 ? (parseInt(partes[1], 10) || 0) : 0;
-
-  return minutosParaHora_(h * 60 + m);
-}
-
-/**
- * Normaliza data para ISO "YYYY-MM-DD"
- */
-function normalizarDataISO_(valor) {
-  if (!valor) return "";
-
-  if (Object.prototype.toString.call(valor) === "[object Date]") {
-    return Utilities.formatDate(valor, Session.getScriptTimeZone(), "yyyy-MM-dd");
+  if (!novoStatus) {
+    throw {
+      code: 'AGENDA_MISSING_NOVO_STATUS',
+      message: 'Campo "novo_status" é obrigatório.'
+    };
   }
 
-  var str = String(valor).trim();
-  if (!str) return "";
+  var sheet = getAgendaSheet_();
+  var lastRow = sheet.getLastRow();
 
-  // Já está em ISO
-  var isoRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (isoRegex.test(str)) {
-    return str;
+  if (lastRow < 2) {
+    throw {
+      code: 'AGENDA_EMPTY',
+      message: 'Não há registros na agenda.'
+    };
   }
 
-  // Formato BR dd/mm/yyyy
-  var brRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-  var m = str.match(brRegex);
-  if (m) {
-    var dia = m[1];
-    var mes = m[2];
-    var ano = m[3];
-    return ano + "-" + mes + "-" + dia;
-  }
+  var idCol = AGENDA_COLS.ID_Agenda;
+  var rangeIds = sheet.getRange(2, idCol, lastRow - 1, 1);
+  var valuesIds = rangeIds.getValues();
 
-  return str;
-}
-
-/* ============================================================================
- * GERAR ID DE AGENDA
- * ============================================================================
- */
-
-function gerarIdAgenda_(sheet, lastRow) {
-  var prefixo = "AG-";
-  var proximoNumero = 1;
-
-  if (lastRow >= 2) {
-    var rangeIds = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-    for (var i = 0; i < rangeIds.length; i++) {
-      var id = String(rangeIds[i][0] || "");
-      if (!id || id.indexOf(prefixo) !== 0) continue;
-      var numStr = id.substring(prefixo.length);
-      var num = parseInt(numStr, 10);
-      if (!isNaN(num) && num >= proximoNumero) {
-        proximoNumero = num + 1;
-      }
+  var rowIndex = null;
+  for (var i = 0; i < valuesIds.length; i++) {
+    var cellValue = String(valuesIds[i][0] || '');
+    if (cellValue === id) {
+      rowIndex = i + 2;
+      break;
     }
   }
 
-  var numStrFinal = ("000000" + proximoNumero).slice(-6);
-  return prefixo + numStrFinal;
+  if (!rowIndex) {
+    throw {
+      code: 'AGENDA_ID_NOT_FOUND',
+      message: 'Agendamento não encontrado para ID_Agenda: ' + id
+    };
+  }
+
+  var now = new Date();
+
+  sheet.getRange(rowIndex, AGENDA_COLS.Status).setValue(novoStatus);
+  sheet.getRange(rowIndex, AGENDA_COLS.Updated_At).setValue(now);
+
+  var rowRange = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn());
+  var rowValues = rowRange.getValues()[0];
+
+  return agendaRowToObject_(rowValues);
+}
+
+/**
+ * Verifica se o intervalo [horaInicio, horaFim] de uma CONSULTA
+ * conflita com algum BLOQUEIO (Bloqueio = TRUE) na mesma data.
+ *
+ * ignoreId: ID_Agenda a ser ignorado (útil em Atualizar).
+ */
+function verificarConflitoBloqueio_(sheet, dataStr, horaInicioStr, horaFimStr, ignoreId) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  var range = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn());
+  var values = range.getValues();
+
+  var novoInicio = convertTimeToMinutes_(horaInicioStr);
+  var novoFim = convertTimeToMinutes_(horaFimStr);
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+
+    var idRow = String(row[AGENDA_COLS.ID_Agenda - 1] || '');
+    if (ignoreId && idRow === ignoreId) continue;
+
+    var dataCell = row[AGENDA_COLS.Data - 1];
+    var bloqueioFlag = row[AGENDA_COLS.Bloqueio - 1] === true;
+    if (!bloqueioFlag) continue;
+
+    var dataCellStr =
+      dataCell instanceof Date
+        ? Utilities.formatDate(
+            dataCell,
+            Session.getScriptTimeZone(),
+            'yyyy-MM-dd'
+          )
+        : String(dataCell);
+
+    if (dataCellStr !== dataStr) continue;
+
+    var horaInicioBloq = row[AGENDA_COLS.Hora_Inicio - 1];
+    var horaFimBloq = row[AGENDA_COLS.Hora_Fim - 1];
+
+    var bloqInicio = convertTimeToMinutes_(horaInicioBloq);
+    var bloqFim = convertTimeToMinutes_(horaFimBloq);
+
+    var sobrepoe = novoInicio < bloqFim && novoFim > bloqInicio;
+
+    if (sobrepoe) {
+      throw {
+        code: 'AGENDA_CONFLITO_BLOQUEIO',
+        message: 'Horário bloqueado neste intervalo.',
+        details: {
+          hora_inicio: formatTimeString_(horaInicioBloq),
+          hora_fim: formatTimeString_(horaFimBloq)
+        }
+      };
+    }
+  }
+}
+
+/**
+ * Verifica se o intervalo [horaInicio, horaFim] de uma NOVA CONSULTA
+ * conflita com outra CONSULTA existente (Bloqueio = FALSE) na mesma data.
+ *
+ * - Ignora consultas canceladas/faltas.
+ * - Se permiteEncaixe = false → lança erro AGENDA_CONFLITO_CONSULTA.
+ * - Se permiteEncaixe = true → permite (sem erro).
+ *
+ * ignoreId: ID_Agenda a ignorar (Atualizar).
+ */
+function verificarConflitoConsulta_(sheet, dataStr, horaInicioStr, horaFimStr, permiteEncaixe, ignoreId) {
+  if (permiteEncaixe) return;
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  var range = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn());
+  var values = range.getValues();
+
+  var novoInicio = convertTimeToMinutes_(horaInicioStr);
+  var novoFim = convertTimeToMinutes_(horaFimStr);
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+
+    var idRow = String(row[AGENDA_COLS.ID_Agenda - 1] || '');
+    if (ignoreId && idRow === ignoreId) continue;
+
+    var dataCell = row[AGENDA_COLS.Data - 1];
+    var bloqueioFlag = row[AGENDA_COLS.Bloqueio - 1] === true;
+    if (bloqueioFlag) continue;
+
+    var dataCellStr =
+      dataCell instanceof Date
+        ? Utilities.formatDate(
+            dataCell,
+            Session.getScriptTimeZone(),
+            'yyyy-MM-dd'
+          )
+        : String(dataCell);
+
+    if (dataCellStr !== dataStr) continue;
+
+    var status = String(row[AGENDA_COLS.Status - 1] || '').toLowerCase();
+    if (
+      status === 'cancelado' ||
+      status === 'cancelada' ||
+      status === 'falta' ||
+      status === 'faltou'
+    ) {
+      continue;
+    }
+
+    var horaInicioConsult = row[AGENDA_COLS.Hora_Inicio - 1];
+    var horaFimConsult = row[AGENDA_COLS.Hora_Fim - 1];
+
+    var consultInicio = convertTimeToMinutes_(horaInicioConsult);
+    var consultFim = convertTimeToMinutes_(horaFimConsult);
+
+    var sobrepoe = novoInicio < consultFim && novoFim > consultInicio;
+
+    if (sobrepoe) {
+      var nomePac = row[AGENDA_COLS.Nome_Paciente - 1] || '';
+      throw {
+        code: 'AGENDA_CONFLITO_CONSULTA',
+        message: 'Já existe consulta marcada neste horário.',
+        details: {
+          hora_inicio: formatTimeString_(horaInicioConsult),
+          hora_fim: formatTimeString_(horaFimConsult),
+          nome_paciente: nomePac,
+          status: row[AGENDA_COLS.Status - 1] || ''
+        }
+      };
+    }
+  }
+}
+
+/**
+ * Converte "HH:MM" ou Date em minutos desde 00:00.
+ */
+function convertTimeToMinutes_(timeValue) {
+  if (timeValue instanceof Date) {
+    var h = timeValue.getHours();
+    var m = timeValue.getMinutes();
+    return h * 60 + m;
+  }
+
+  var str = String(timeValue || '00:00');
+  var parts = str.split(':');
+  var hour = parseInt(parts[0], 10) || 0;
+  var min = parseInt(parts[1], 10) || 0;
+  return hour * 60 + min;
+}
+
+/**
+ * Garante string "HH:MM" mesmo se vier Date ou número.
+ */
+function formatTimeString_(value) {
+  if (value instanceof Date) {
+    var h = value.getHours();
+    var m = value.getMinutes();
+    return ('0' + h).slice(-2) + ':' + ('0' + m).slice(-2);
+  }
+
+  var str = String(value || '00:00');
+  var parts = str.split(':');
+  var hour = ('0' + (parseInt(parts[0], 10) || 0)).slice(-2);
+  var min = ('0' + (parseInt(parts[1], 10) || 0)).slice(-2);
+  return hour + ':' + min;
+}
+
+/**
+ * Formata Date -> "YYYY-MM-DD".
+ */
+function formatDateToInput_(date) {
+  var y = date.getFullYear();
+  var m = ('0' + (date.getMonth() + 1)).slice(-2);
+  var d = ('0' + date.getDate()).slice(-2);
+  return y + '-' + m + '-' + d;
+}
+
+/**
+ * Converte uma linha da aba Agenda em objeto JS.
+ */
+function agendaRowToObject_(row) {
+  function get(colName) {
+    var idx = AGENDA_COLS[colName] - 1;
+    return row[idx];
+  }
+
+  return {
+    ID_Agenda: String(get('ID_Agenda') || ''),
+    data: String(get('Data') || ''),
+    hora_inicio: String(get('Hora_Inicio') || ''),
+    hora_fim: String(get('Hora_Fim') || ''),
+    duracao_minutos: Number(get('Duracao_Minutos') || 0),
+
+    ID_Paciente: String(get('ID_Paciente') || ''),
+    nome_paciente: String(get('Nome_Paciente') || ''),
+    documento_paciente: String(get('Documento_Paciente') || ''),
+    telefone_paciente: String(get('Telefone_Paciente') || ''),
+
+    tipo: String(get('Tipo') || ''),
+    motivo: String(get('Motivo') || ''),
+    status: String(get('Status') || ''),
+    origem: String(get('Origem') || ''),
+    canal: String(get('Canal') || ''),
+
+    ID_Sala: String(get('ID_Sala') || ''),
+    profissional: String(get('Profissional') || ''),
+
+    bloqueio: get('Bloqueio') === true,
+    descricao_bloqueio: String(get('Descricao_Bloqueio') || ''),
+    permite_encaixe: get('Permite_Encaixe') === true,
+
+    created_at: get('Created_At') || '',
+    updated_at: get('Updated_At') || ''
+  };
+}
+
+/**
+ * Gera um ID único de agenda.
+ */
+function generateAgendaId_(dataStr, sheet) {
+  var yyyymmdd = dataStr.replace(/-/g, '');
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return 'AG' + yyyymmdd + '-0001';
+  }
+
+  var range = sheet.getRange(2, AGENDA_COLS.Data, lastRow - 1, 2);
+  var values = range.getValues();
+
+  var countForDate = 0;
+  for (var i = 0; i < values.length; i++) {
+    var rowData = values[i];
+    var dataCell = rowData[0];
+    var dataCellStr =
+      dataCell instanceof Date
+        ? Utilities.formatDate(
+            dataCell,
+            Session.getScriptTimeZone(),
+            'yyyy-MM-dd'
+          )
+        : String(dataCell);
+    if (dataCellStr === dataStr) {
+      countForDate++;
+    }
+  }
+
+  var seq = countForDate + 1;
+  var seqStr = ('000' + seq).slice(-4);
+
+  return 'AG' + yyyymmdd + '-' + seqStr;
+}
+
+/**
+ * Soma minutos a uma string "HH:MM" e devolve "HH:MM".
+ */
+function addMinutesToTime_(timeStr, minutesToAdd) {
+  var parts = String(timeStr).split(':');
+  var hour = parseInt(parts[0], 10);
+  var min = parseInt(parts[1], 10);
+
+  var totalMinutes = hour * 60 + min + minutesToAdd;
+  if (totalMinutes < 0) {
+    totalMinutes = 0;
+  }
+
+  var newHour = Math.floor(totalMinutes / 60) % 24;
+  var newMin = totalMinutes % 60;
+
+  var hStr = ('0' + newHour).slice(-2);
+  var mStr = ('0' + newMin).slice(-2);
+
+  return hStr + ':' + mStr;
+}
+
+/**
+ * Compara duas strings "HH:MM" para ordenação.
+ */
+function compareTimeStrings_(a, b) {
+  var pa = String(a).split(':');
+  var pb = String(b).split(':');
+
+  var ma = parseInt(pa[0], 10) * 60 + parseInt(pa[1], 10);
+  var mb = parseInt(pb[0], 10) * 60 + parseInt(pb[1], 10);
+
+  if (ma < mb) return -1;
+  if (ma > mb) return 1;
+  return 0;
 }

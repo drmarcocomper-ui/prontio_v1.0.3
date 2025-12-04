@@ -1,12 +1,32 @@
-// assets/js/configuracoes.js
-// Front-end de Configurações do PRONTIO
-// - Carrega configurações gerais (Configuracoes.Obter)
-// - Salva configurações gerais (Configuracoes.Salvar)
-// - Mantém tudo em um objeto "config" para o front
+// assets/js/pages/configuracoes.js
+// Página de Configurações do PRONTIO
+// - Usa AgendaConfig_Obter / AgendaConfig_Salvar
+// - Lê/escreve dados do médico, clínica, logo e agenda
 
-document.addEventListener("DOMContentLoaded", () => {
+// callApi vem de ./core/api.js (já importado por main.js)
+// aqui usamos como função global
+// eslint-disable-next-line no-undef
+const apiCall = typeof callApi === "function" ? callApi : null;
+
+/**
+ * Inicializador chamado pelo main.js quando data-page-id="configuracoes".
+ */
+export function initConfiguracoesPage() {
+  const body = document.body;
+  const pageId = body.dataset.pageId || null;
+  if (pageId !== "configuracoes") return;
+
   const form = document.getElementById("formConfiguracoes");
   const btnRecarregar = document.getElementById("btnRecarregarConfig");
+
+  if (!apiCall) {
+    console.error("configuracoes.js: callApi não encontrado. Verifique core/api.js.");
+    mostrarMensagemConfig(
+      "Erro interno: API não disponível no front. Verifique console.",
+      "erro"
+    );
+    return;
+  }
 
   if (form) {
     form.addEventListener("submit", async (event) => {
@@ -22,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   carregarConfiguracoes();
-});
+}
 
 function mostrarMensagemConfig(texto, tipo = "info") {
   const div = document.getElementById("mensagemConfig");
@@ -53,7 +73,7 @@ function mostrarMensagemConfig(texto, tipo = "info") {
 }
 
 /**
- * Lê os campos de checkbox dos dias da semana e retorna um array de códigos (SEG, TER, ...).
+ * Lê os checkboxes dos dias da semana e retorna um array de códigos (SEG, TER, ...).
  */
 function obterDiasAtivosDoFormulario() {
   const chks = document.querySelectorAll(".chk-dia-ativo");
@@ -79,60 +99,72 @@ function aplicarDiasAtivosNoFormulario(dias) {
 }
 
 /**
- * Carrega as configurações do backend.
+ * Carrega as configurações do backend via AgendaConfig_Obter.
  */
 async function carregarConfiguracoes() {
-  mostrarMensagemConfig("Carregando configurações...", "info");
+  try {
+    mostrarMensagemConfig("Carregando configurações...", "info");
 
-  const resposta = await callApi({
-    action: "Configuracoes.Obter",
-    payload: {},
-  });
+    const cfg = await apiCall({
+      action: "AgendaConfig_Obter",
+      payload: {},
+    });
 
-  if (!resposta || !resposta.success) {
-    const erroTexto =
-      (resposta && (resposta.errors || []).join(" | ")) ||
-      "Erro ao carregar configurações.";
-    mostrarMensagemConfig(erroTexto, "erro");
-    return;
+    if (!cfg) {
+      mostrarMensagemConfig(
+        "Não foi possível carregar as configurações (resposta vazia).",
+        "erro"
+      );
+      return;
+    }
+
+    // Dados do médico
+    document.getElementById("medicoNomeCompleto").value =
+      cfg.medicoNomeCompleto || "";
+    document.getElementById("medicoCRM").value = cfg.medicoCRM || "";
+    document.getElementById("medicoEspecialidade").value =
+      cfg.medicoEspecialidade || "";
+
+    // Dados da clínica
+    document.getElementById("clinicaNome").value = cfg.clinicaNome || "";
+    document.getElementById("clinicaEndereco").value =
+      cfg.clinicaEndereco || "";
+    document.getElementById("clinicaTelefone").value =
+      cfg.clinicaTelefone || "";
+    document.getElementById("clinicaEmail").value = cfg.clinicaEmail || "";
+
+    // Logo
+    const logoInput = document.getElementById("clinicaLogoUrl");
+    if (logoInput) {
+      logoInput.value = cfg.logoUrl || "";
+    }
+
+    // Preferências da agenda (usadas pela agenda diária/semanal)
+    document.getElementById("agendaHoraInicioPadrao").value =
+      cfg.hora_inicio_padrao || "";
+    document.getElementById("agendaHoraFimPadrao").value =
+      cfg.hora_fim_padrao || "";
+    document.getElementById("agendaIntervaloMinutos").value =
+      cfg.duracao_grade_minutos || "";
+
+    aplicarDiasAtivosNoFormulario(cfg.dias_ativos || []);
+
+    mostrarMensagemConfig("Configurações carregadas com sucesso.", "sucesso");
+  } catch (error) {
+    console.error("Erro ao carregar configurações:", error);
+    mostrarMensagemConfig(
+      "Erro ao carregar configurações: " + error.message,
+      "erro"
+    );
   }
-
-  const cfg = (resposta.data && resposta.data.configuracoes) || {};
-
-  // Dados do médico
-  document.getElementById("medicoNomeCompleto").value =
-    cfg.medicoNomeCompleto || "";
-  document.getElementById("medicoCRM").value = cfg.medicoCRM || "";
-  document.getElementById("medicoEspecialidade").value =
-    cfg.medicoEspecialidade || "";
-
-  // Dados da clínica
-  document.getElementById("clinicaNome").value = cfg.clinicaNome || "";
-  document.getElementById("clinicaEndereco").value =
-    cfg.clinicaEndereco || "";
-  document.getElementById("clinicaTelefone").value =
-    cfg.clinicaTelefone || "";
-  document.getElementById("clinicaEmail").value = cfg.clinicaEmail || "";
-
-  // Preferências da agenda
-  document.getElementById("agendaHoraInicioPadrao").value =
-    cfg.agendaHoraInicioPadrao || "";
-  document.getElementById("agendaHoraFimPadrao").value =
-    cfg.agendaHoraFimPadrao || "";
-  document.getElementById("agendaIntervaloMinutos").value =
-    cfg.agendaIntervaloMinutos || "";
-
-  aplicarDiasAtivosNoFormulario(cfg.agendaDiasAtivos || []);
-
-  mostrarMensagemConfig("Configurações carregadas com sucesso.", "sucesso");
 }
 
 /**
- * Coleta as configurações dos campos do formulário e envia ao backend.
+ * Coleta as configurações dos campos do formulário e envia ao backend via AgendaConfig_Salvar.
  */
 async function salvarConfiguracoes() {
-  // Coleta campos
-  const medicoNomeCompleto = document.getElementById("medicoNomeCompleto")
+  const medicoNomeCompleto = document
+    .getElementById("medicoNomeCompleto")
     .value.trim();
   const medicoCRM = document.getElementById("medicoCRM").value.trim();
   const medicoEspecialidade = document
@@ -148,6 +180,9 @@ async function salvarConfiguracoes() {
     .value.trim();
   const clinicaEmail = document.getElementById("clinicaEmail").value.trim();
 
+  const clinicaLogoUrlEl = document.getElementById("clinicaLogoUrl");
+  const logoUrl = clinicaLogoUrlEl ? clinicaLogoUrlEl.value.trim() : "";
+
   const agendaHoraInicioPadrao = document.getElementById(
     "agendaHoraInicioPadrao"
   ).value;
@@ -160,7 +195,6 @@ async function salvarConfiguracoes() {
 
   const agendaDiasAtivos = obterDiasAtivosDoFormulario();
 
-  // Validação mínima no front (regras de negócio ficam no backend)
   if (!medicoNomeCompleto) {
     mostrarMensagemConfig("Informe o nome completo do médico.", "erro");
     return;
@@ -180,26 +214,25 @@ async function salvarConfiguracoes() {
     clinicaEndereco,
     clinicaTelefone,
     clinicaEmail,
-    agendaHoraInicioPadrao,
-    agendaHoraFimPadrao,
-    agendaIntervaloMinutos,
-    agendaDiasAtivos, // array de códigos [ "SEG", "TER", ... ]
+    logoUrl,
+    hora_inicio_padrao: agendaHoraInicioPadrao,
+    hora_fim_padrao: agendaHoraFimPadrao,
+    duracao_grade_minutos: Number(agendaIntervaloMinutos || 30),
+    dias_ativos: agendaDiasAtivos,
   };
 
-  const resposta = await callApi({
-    action: "Configuracoes.Salvar",
-    payload: {
-      configuracoes: payloadConfig,
-    },
-  });
+  try {
+    await apiCall({
+      action: "AgendaConfig_Salvar",
+      payload: payloadConfig,
+    });
 
-  if (!resposta || !resposta.success) {
-    const erroTexto =
-      (resposta && (resposta.errors || []).join(" | ")) ||
-      "Erro ao salvar configurações.";
-    mostrarMensagemConfig(erroTexto, "erro");
-    return;
+    mostrarMensagemConfig("Configurações salvas com sucesso.", "sucesso");
+  } catch (error) {
+    console.error("Erro ao salvar configurações:", error);
+    mostrarMensagemConfig(
+      "Erro ao salvar configurações: " + error.message,
+      "erro"
+    );
   }
-
-  mostrarMensagemConfig("Configurações salvas com sucesso.", "sucesso");
 }
