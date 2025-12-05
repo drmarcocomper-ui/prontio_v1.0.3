@@ -22,6 +22,8 @@
 <body 
   data-page-id="modelo" 
   data-subtitle="Subtítulo da página"
+  data-tag="Módulo"
+  data-context="Geral"
 >
   <div class="app-shell">
     <!-- SIDEBAR / MENU LATERAL (mesmo padrão da agenda) -->
@@ -217,11 +219,14 @@
           </div>
 
           <div class="topbar-title-main">
-            <h1 id="topbar-title-text"></h1>
-            <span id="topbar-tag" class="topbar-tag"></span>
+            <!-- TEXTO FIXO PARA O TEMPLATE BASE -->
+            <h1 id="topbar-title-text">Título da página</h1>
+            <span id="topbar-tag" class="topbar-tag">Etiqueta</span>
           </div>
 
-          <p id="topbar-subtitle" class="topbar-subtitle"></p>
+          <p id="topbar-subtitle" class="topbar-subtitle">
+            Subtítulo da página.
+          </p>
         </div>
 
         <div class="topbar-col-right">
@@ -247,7 +252,7 @@
             </p>
             <ul>
               <li>Copiar este arquivo como <code>pacientes.html</code></li>
-              <li>Ajustar <code>data-page-id</code> e <code>data-subtitle</code> no &lt;body&gt;</li>
+              <li>Ajustar <code>data-page-id</code>, <code>data-subtitle</code>, <code>data-tag</code> e <code>data-context</code> no &lt;body&gt;</li>
               <li>Criar (se precisar) <code>assets/css/modules/pacientes.css</code> e importar em <code>style.css</code></li>
               <li>Substituir este card pelo conteúdo específico da página</li>
             </ul>

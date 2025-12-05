@@ -18,10 +18,10 @@
  *
  *  - LOGO_URL
  *
- *  - HORA_INICIO_PADRAO       (ex.: "08:00")
- *  - HORA_FIM_PADRAO          (ex.: "18:00")
- *  - DURACAO_GRADE_MINUTOS    (ex.: "30")
- *  - DIAS_ATIVOS              (ex.: "SEG,TER,QUA,QUI,SEX")
+ *  - HORA_INICIO_PADRAO      (ex.: "08:00")
+ *  - HORA_FIM_PADRAO         (ex.: "18:00")
+ *  - DURACAO_GRADE_MINUTOS   (ex.: "15")
+ *  - DIAS_ATIVOS             (ex.: "SEG,TER,QUA,QUI,SEX")
  *
  * O front NUNCA acessa a planilha direto. Usa:
  *  - AgendaConfig_Obter
@@ -32,7 +32,7 @@ var AGENDA_CONFIG_SHEET_NAME = 'AgendaConfig';
 
 /**
  * Roteador interno da AgendaConfig.
- * Chamado a partir de Api.gs → handleAgendaConfigAction(action, payload)
+ * Chamado a partir de Api.gs -> handleAgendaConfigAction(action, payload)
  */
 function handleAgendaConfigAction(action, payload) {
   switch (action) {
@@ -44,267 +44,158 @@ function handleAgendaConfigAction(action, payload) {
 
     default:
       throw {
-        code: 'AGENDACONFIG_UNKNOWN_ACTION',
+        code: 'AGENDA_CONFIG_UNKNOWN_ACTION',
         message: 'Ação de configuração de agenda desconhecida: ' + action
       };
   }
 }
 
 /**
- * Obtém (ou cria) a aba de AgendaConfig.
+ * Retorna o objeto de configuração da Agenda / Sistema.
+ *
+ * Retorno exemplo:
+ * {
+ *   medico_nome_completo: "...",
+ *   medico_crm: "...",
+ *   medico_especialidade: "...",
+ *   clinica_nome: "...",
+ *   clinica_endereco: "...",
+ *   clinica_telefone: "...",
+ *   clinica_email: "...",
+ *   logo_url: "...",
+ *   hora_inicio_padrao: "08:00",
+ *   hora_fim_padrao: "18:00",
+ *   duracao_grade_minutos: 15,
+ *   dias_ativos: "SEG,TER,QUA,QUI,SEX"
+ * }
  */
-function getAgendaConfigSheet_(createIfMissing) {
+function agendaConfigObter_() {
+  var defaults = {
+    medico_nome_completo: '',
+    medico_crm: '',
+    medico_especialidade: '',
+    clinica_nome: '',
+    clinica_endereco: '',
+    clinica_telefone: '',
+    clinica_email: '',
+    logo_url: '',
+    hora_inicio_padrao: '08:00',
+    hora_fim_padrao: '18:00',
+    duracao_grade_minutos: 15,
+    dias_ativos: 'SEG,TER,QUA,QUI,SEX'
+  };
+
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(AGENDA_CONFIG_SHEET_NAME);
-  if (!sheet && createIfMissing) {
-    sheet = ss.insertSheet(AGENDA_CONFIG_SHEET_NAME);
-    // Cabeçalho padrão
-    sheet.getRange(1, 1).setValue('Chave');
-    sheet.getRange(1, 2).setValue('Valor');
-  }
-  return sheet;
-}
-
-/**
- * Lê a tabela chave/valor da aba AgendaConfig para um map JS.
- *
- * Retorna: { CHAVE: valor, ... }
- */
-function readAgendaConfigMap_() {
-  var sheet = getAgendaConfigSheet_(false);
-  var map = {};
-
   if (!sheet) {
-    return map;
+    return defaults;
   }
 
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) {
-    return map;
+    return defaults;
   }
 
-  var range = sheet.getRange(2, 1, lastRow - 1, 2);
+  var range = sheet.getRange(2, 1, lastRow - 1, 2); // Chave/Valor
   var values = range.getValues();
 
+  var map = {};
   for (var i = 0; i < values.length; i++) {
     var chave = String(values[i][0] || '').trim();
-    var valor = String(values[i][1] || '').trim();
+    var valor = values[i][1];
     if (!chave) continue;
     map[chave] = valor;
   }
 
-  return map;
-}
-
-/**
- * Grava um map chave/valor na aba AgendaConfig.
- *  - Cria a aba se não existir.
- *  - Atualiza as chaves existentes e insere as novas.
- */
-function writeAgendaConfigMap_(kvMap) {
-  var sheet = getAgendaConfigSheet_(true);
-  var lastRow = sheet.getLastRow();
-
-  if (lastRow < 1) {
-    sheet.getRange(1, 1).setValue('Chave');
-    sheet.getRange(1, 2).setValue('Valor');
-    lastRow = 1;
-  }
-
-  // Lê todas as chaves existentes para mapear linha
-  var existing = {};
-  if (lastRow > 1) {
-    var range = sheet.getRange(2, 1, lastRow - 1, 2);
-    var values = range.getValues();
-    for (var i = 0; i < values.length; i++) {
-      var chave = String(values[i][0] || '').trim();
-      if (chave) {
-        existing[chave] = {
-          row: i + 2,
-          value: values[i][1]
-        };
-      }
-    }
-  }
-
-  // Atualiza / insere chaves desejadas
-  var keys = Object.keys(kvMap);
-  var rowToWrite = lastRow + 1;
-
-  keys.forEach(function (chave) {
-    var valor = kvMap[chave];
-
-    if (existing[chave]) {
-      // atualiza linha existente
-      sheet.getRange(existing[chave].row, 1).setValue(chave);
-      sheet.getRange(existing[chave].row, 2).setValue(valor);
-    } else {
-      // insere nova linha
-      sheet.getRange(rowToWrite, 1).setValue(chave);
-      sheet.getRange(rowToWrite, 2).setValue(valor);
-      rowToWrite++;
-    }
-  });
-}
-
-/**
- * Lê configuração da aba AgendaConfig, aplicando defaults.
- *
- * Retorno:
- * {
- *   medicoNomeCompleto,
- *   medicoCRM,
- *   medicoEspecialidade,
- *
- *   clinicaNome,
- *   clinicaEndereco,
- *   clinicaTelefone,
- *   clinicaEmail,
- *
- *   logoUrl,
- *
- *   hora_inicio_padrao,       // "08:00"
- *   hora_fim_padrao,          // "18:00"
- *   duracao_grade_minutos,    // 30
- *   dias_ativos               // ["SEG","TER","QUA","QUI","SEX"]
- * }
- */
-function agendaConfigObter_() {
-  var map = readAgendaConfigMap_();
-
-  var defaults = {
-    hora_inicio_padrao: '08:00',
-    hora_fim_padrao: '18:00',
-    duracao_grade_minutos: 30,
-    dias_ativos: ['SEG', 'TER', 'QUA', 'QUI', 'SEX']
-  };
-
-  var diasStr = map.DIAS_ATIVOS || '';
-  var diasAtivos = diasStr
-    ? diasStr
-        .split(',')
-        .map(function (s) {
-          return String(s || '').trim();
-        })
-        .filter(function (s) {
-          return !!s;
-        })
-    : defaults.dias_ativos;
-
-  var duracao = Number(map.DURACAO_GRADE_MINUTOS || defaults.duracao_grade_minutos);
-  if (!duracao || duracao <= 0) {
-    duracao = defaults.duracao_grade_minutos;
-  }
-
   var cfg = {
-    // Médico
-    medicoNomeCompleto: map.MEDICO_NOME_COMPLETO || '',
-    medicoCRM: map.MEDICO_CRM || '',
-    medicoEspecialidade: map.MEDICO_ESPECIALIDADE || '',
+    medico_nome_completo: String(map.MEDICO_NOME_COMPLETO || defaults.medico_nome_completo),
+    medico_crm: String(map.MEDICO_CRM || defaults.medico_crm),
+    medico_especialidade: String(map.MEDICO_ESPECIALIDADE || defaults.medico_especialidade),
 
-    // Clínica
-    clinicaNome: map.CLINICA_NOME || '',
-    clinicaEndereco: map.CLINICA_ENDERECO || '',
-    clinicaTelefone: map.CLINICA_TELEFONE || '',
-    clinicaEmail: map.CLINICA_EMAIL || '',
+    clinica_nome: String(map.CLINICA_NOME || defaults.clinica_nome),
+    clinica_endereco: String(map.CLINICA_ENDERECO || defaults.clinica_endereco),
+    clinica_telefone: String(map.CLINICA_TELEFONE || defaults.clinica_telefone),
+    clinica_email: String(map.CLINICA_EMAIL || defaults.clinica_email),
 
-    // Logo
-    logoUrl: map.LOGO_URL || '',
+    logo_url: String(map.LOGO_URL || defaults.logo_url),
 
-    // Agenda
-    hora_inicio_padrao: map.HORA_INICIO_PADRAO || defaults.hora_inicio_padrao,
-    hora_fim_padrao: map.HORA_FIM_PADRAO || defaults.hora_fim_padrao,
-    duracao_grade_minutos: duracao,
-    dias_ativos: diasAtivos
+    hora_inicio_padrao: String(map.HORA_INICIO_PADRAO || defaults.hora_inicio_padrao),
+    hora_fim_padrao: String(map.HORA_FIM_PADRAO || defaults.hora_fim_padrao),
+    duracao_grade_minutos: parseInt(
+      map.DURACAO_GRADE_MINUTOS || defaults.duracao_grade_minutos,
+      10
+    ),
+    dias_ativos: String(map.DIAS_ATIVOS || defaults.dias_ativos)
   };
+
+  if (isNaN(cfg.duracao_grade_minutos) || cfg.duracao_grade_minutos <= 0) {
+    cfg.duracao_grade_minutos = defaults.duracao_grade_minutos;
+  }
 
   return cfg;
 }
 
 /**
- * Salva as configurações enviadas pelo front.
+ * Salva configurações na aba AgendaConfig.
  *
- * payload (exemplo):
- * {
- *   medicoNomeCompleto,
- *   medicoCRM,
- *   medicoEspecialidade,
- *   clinicaNome,
- *   clinicaEndereco,
- *   clinicaTelefone,
- *   clinicaEmail,
- *   logoUrl,
- *   hora_inicio_padrao,
- *   hora_fim_padrao,
- *   duracao_grade_minutos,
- *   dias_ativos: ["SEG","TER","QUA","QUI","SEX"]
- * }
+ * payload pode conter qualquer subset das chaves de configuração.
  */
 function agendaConfigSalvar_(payload) {
-  if (!payload) {
-    throw {
-      code: 'AGENDACONFIG_MISSING_PAYLOAD',
-      message: 'Nenhum dado de configuração recebido.'
-    };
+  payload = payload || {};
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(AGENDA_CONFIG_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(AGENDA_CONFIG_SHEET_NAME);
+    sheet.getRange(1, 1, 1, 2).setValues([['Chave', 'Valor']]);
   }
 
-  // Validações mínimas – regras completas podem ser expandidas depois
-  if (!payload.medicoNomeCompleto) {
-    throw {
-      code: 'AGENDACONFIG_MISSING_MEDICO_NOME',
-      message: 'Nome completo do médico é obrigatório.'
-    };
-  }
-  if (!payload.medicoCRM) {
-    throw {
-      code: 'AGENDACONFIG_MISSING_MEDICO_CRM',
-      message: 'CRM do médico é obrigatório.'
-    };
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 1) {
+    sheet.getRange(1, 1, 1, 2).setValues([['Chave', 'Valor']]);
+    lastRow = 1;
   }
 
-  var kv = {};
+  var range = sheet.getRange(2, 1, Math.max(lastRow - 1, 1), 2);
+  var values = range.getValues();
 
-  // Médico
-  kv.MEDICO_NOME_COMPLETO = String(payload.medicoNomeCompleto || '').trim();
-  kv.MEDICO_CRM = String(payload.medicoCRM || '').trim();
-  kv.MEDICO_ESPECIALIDADE = String(payload.medicoEspecialidade || '').trim();
+  // Mapa de chave -> linha
+  var rowByKey = {};
+  for (var i = 0; i < values.length; i++) {
+    var chave = String(values[i][0] || '').trim();
+    if (!chave) continue;
+    rowByKey[chave] = i + 2; // linha real
+  }
 
-  // Clínica
-  kv.CLINICA_NOME = String(payload.clinicaNome || '').trim();
-  kv.CLINICA_ENDERECO = String(payload.clinicaEndereco || '').trim();
-  kv.CLINICA_TELEFONE = String(payload.clinicaTelefone || '').trim();
-  kv.CLINICA_EMAIL = String(payload.clinicaEmail || '').trim();
+  function upsert(key, value) {
+    if (typeof value === 'undefined') return;
 
-  // Logo
-  kv.LOGO_URL = String(payload.logoUrl || '').trim();
+    var rowIndex = rowByKey[key];
+    if (rowIndex) {
+      sheet.getRange(rowIndex, 2).setValue(value);
+    } else {
+      var newRow = sheet.getLastRow() + 1;
+      sheet.getRange(newRow, 1, 1, 2).setValues([[key, value]]);
+      rowByKey[key] = newRow;
+    }
+  }
 
-  // Agenda / horários
-  kv.HORA_INICIO_PADRAO = String(payload.hora_inicio_padrao || '08:00').trim();
-  kv.HORA_FIM_PADRAO = String(payload.hora_fim_padrao || '18:00').trim();
+  upsert('MEDICO_NOME_COMPLETO', payload.medico_nome_completo);
+  upsert('MEDICO_CRM', payload.medico_crm);
+  upsert('MEDICO_ESPECIALIDADE', payload.medico_especialidade);
 
-  var dur = Number(payload.duracao_grade_minutos || 30);
-  if (!dur || dur <= 0) dur = 30;
-  kv.DURACAO_GRADE_MINUTOS = String(dur);
+  upsert('CLINICA_NOME', payload.clinica_nome);
+  upsert('CLINICA_ENDERECO', payload.clinica_endereco);
+  upsert('CLINICA_TELEFONE', payload.clinica_telefone);
+  upsert('CLINICA_EMAIL', payload.clinica_email);
 
-  var dias = payload.dias_ativos || [];
-  if (!Array.isArray(dias)) dias = [];
-  dias = dias
-    .map(function (s) {
-      return String(s || '').trim();
-    })
-    .filter(function (s) {
-      return !!s;
-    });
-  kv.DIAS_ATIVOS = dias.join(',');
+  upsert('LOGO_URL', payload.logo_url);
 
-  // Escreve na planilha
-  writeAgendaConfigMap_(kv);
+  upsert('HORA_INICIO_PADRAO', payload.hora_inicio_padrao);
+  upsert('HORA_FIM_PADRAO', payload.hora_fim_padrao);
+  upsert('DURACAO_GRADE_MINUTOS', payload.duracao_grade_minutos);
+  upsert('DIAS_ATIVOS', payload.dias_ativos);
 
-  // Retorna config atualizada
   var cfg = agendaConfigObter_();
-
-  return {
-    saved: true,
-    config: cfg
-  };
+  return cfg;
 }

@@ -179,22 +179,36 @@
 
     <!-- ÁREA PRINCIPAL -->
     <main class="main-area">
-      <!-- TOPO (modelo alinhado com a Agenda, sem painel extra) -->
+      <!-- TOPBAR PADRÃO (novo layout, preenchido) -->
       <header class="topbar" data-component="topbar">
-        <div class="topbar-title">
-          <div id="topbar-breadcrumb" class="topbar-breadcrumb"></div>
+        <div class="topbar-col-left">
+          <div class="topbar-left-header">
+            <!-- Botão de abrir/fechar sidebar no mobile -->
+            <button
+              type="button"
+              class="icon-button topbar-menu-button js-toggle-sidebar"
+              aria-label="Abrir menu de navegação">
+              <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                <path
+                  d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"
+                  fill="currentColor" />
+              </svg>
+            </button>
 
-          <div class="topbar-title-main">
-            <h1 id="topbar-title-text"></h1>
-            <span id="topbar-tag" class="topbar-tag"></span>
+            <div id="topbar-breadcrumb" class="topbar-breadcrumb"></div>
           </div>
 
-          <p id="topbar-subtitle" class="topbar-subtitle"></p>
+          <div class="topbar-title-main">
+            <h1 id="topbar-title-text">Configurações</h1>
+            <span id="topbar-tag" class="topbar-tag">Sistema</span>
+          </div>
+
+          <p id="topbar-subtitle" class="topbar-subtitle">
+            Dados do médico, da clínica e preferências da agenda.
+          </p>
         </div>
 
-        <div class="topbar-actions">
-          <div id="topbar-extra" class="topbar-extra"></div>
-
+        <div class="topbar-col-right">
           <div class="topbar-meta">
             <span id="topbar-meta-date" class="topbar-meta-item"></span>
             <span id="topbar-meta-context" class="topbar-meta-item"></span>
@@ -203,9 +217,15 @@
       </header>
 
       <!-- CONTEÚDO -->
-      <main class="content">
+      <section class="content">
         <!-- MENSAGEM GLOBAL -->
-        <div id="mensagemConfig" class="mensagem" style="display:none;" role="alert">
+        <div
+          id="mensagemConfig"
+          class="mensagem"
+          style="display:none;"
+          role="alert"
+          aria-live="polite"
+        >
           <!-- Preenchido via JS -->
         </div>
 
@@ -370,7 +390,7 @@
             </div>
           </section>
         </form>
-      </main>
+      </section>
     </main>
   </div>
 

@@ -67,6 +67,19 @@ function limparTabela() {
   tbody.innerHTML = '';
 }
 
+function renderizarEstadoCarregando() {
+  if (!tbody) return;
+  limparTabela();
+
+  const tr = document.createElement('tr');
+  const td = document.createElement('td');
+  td.colSpan = 5;
+  td.classList.add('linha-vazia');
+  td.textContent = 'Carregando lista de atendimento...';
+  tr.appendChild(td);
+  tbody.appendChild(tr);
+}
+
 function criarBadgeStatus(status) {
   const span = document.createElement('span');
   span.classList.add('badge-status');
@@ -148,25 +161,24 @@ function renderizarLinhas(agendamentos) {
 // -----------------------------------------------------
 async function carregarListaAtendimento() {
   atualizarMensagem('Carregando lista de atendimento...', 'info');
-  limparTabela();
+  renderizarEstadoCarregando();
   if (btnRecarregar) btnRecarregar.disabled = true;
 
   try {
-    const resposta = await callApi({
+    // Seu callApi já:
+    // - envia { action, payload }
+    // - verifica success
+    // - lança erro se success = false
+    // - retorna APENAS json.data
+    //
+    // Então aqui recebemos diretamente o "data" da API:
+    // { agendamentos: [...] }
+    const data = await callApi({
       action: 'Agenda.ListarAFuturo',
       payload: {},
     });
 
-    if (!resposta || !resposta.success) {
-      const msgErro =
-        (resposta && resposta.errors && resposta.errors.join(' | ')) ||
-        'Erro ao carregar lista de atendimento.';
-      atualizarMensagem(msgErro, 'erro');
-      return;
-    }
-
-    const agendamentos =
-      (resposta.data && resposta.data.agendamentos) || [];
+    const agendamentos = (data && data.agendamentos) || [];
 
     renderizarLinhas(agendamentos);
 
@@ -188,10 +200,11 @@ async function carregarListaAtendimento() {
     }
   } catch (erro) {
     console.error('Erro ao carregar Lista de Atendimento:', erro);
-    atualizarMensagem(
-      'Falha na comunicação com o servidor. Verifique sua conexão ou tente novamente.',
-      'erro'
-    );
+    const msg =
+      (erro && erro.message) ||
+      'Falha na comunicação com o servidor. Verifique sua conexão ou tente novamente.';
+    atualizarMensagem(msg, 'erro');
+    limparTabela();
   } finally {
     if (btnRecarregar) btnRecarregar.disabled = false;
   }

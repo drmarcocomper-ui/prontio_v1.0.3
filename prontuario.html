@@ -22,9 +22,11 @@
 <body 
   data-page-id="prontuario" 
   data-subtitle="Registro clínico e evoluções do paciente"
+  data-tag="Prontuário"
+  data-context="Prontuário"
 >
   <div class="app-shell">
-    <!-- SIDEBAR / MENU LATERAL (mesmo padrão da agenda) -->
+    <!-- SIDEBAR / MENU LATERAL (mesmo padrão das outras páginas) -->
     <aside id="sidebar" class="sidebar" data-component="sidebar">
       <div class="sidebar-header">
         <div class="app-logo">PRONTIO</div>
@@ -195,10 +197,11 @@
 
     <!-- ÁREA PRINCIPAL -->
     <main class="main-area">
-      <!-- TOPBAR GENÉRICA -->
+      <!-- TOPBAR PADRÃO (mesmo layout de agenda/index/pacientes) -->
       <header class="topbar" data-component="topbar">
         <div class="topbar-col-left">
           <div class="topbar-left-header">
+            <!-- Botão menu mobile -->
             <button
               type="button"
               class="icon-button topbar-menu-button js-toggle-sidebar"
@@ -214,12 +217,13 @@
           </div>
 
           <div class="topbar-title-main">
+            <!-- TÍTULO / TAG / SUBTÍTULO FIXOS PARA O TOPO APARECER -->
             <h1 id="topbar-title-text">Prontuário</h1>
             <span id="topbar-tag" class="topbar-tag">Registro clínico</span>
           </div>
 
           <p id="topbar-subtitle" class="topbar-subtitle">
-            Registro de evolução por atendimento e histórico global do paciente.
+            Registro clínico e evoluções do paciente.
           </p>
         </div>
 

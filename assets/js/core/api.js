@@ -1,103 +1,160 @@
-// assets/js/core/api.js
-// PRONTIO - Módulo de comunicação com a API (Apps Script WebApp)
-
 /**
- * IMPORTANTE:
- * - Substitua a variável API_URL pela URL publicada do seu WebApp:
- *   Exemplo:
- *     const API_URL = "https://script.google.com/macros/s/AKfycbx.../exec";
- */
-
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbwGRPf5qbymuOSEGEgxv1hOYkIB6m-dol8t5n1vrOuauzO_2A1WhgXv1eoe4PtpCDAcsg/exec";
-
-/**
- * Chama a API do PRONTIO (backend Apps Script) usando o protocolo padrão:
- * { action: "Modulo.Funcao", payload: {.} }
+ * PRONTIO - API Principal
  *
- * Backend responde:
+ * Roteador geral da API.
+ * Recebe POST com JSON (texto) no corpo:
+ *   { action: "NomeDaAcao", payload: { ... } }
+ *
+ * Retorna SEMPRE JSON no formato:
  * {
  *   success: true/false,
- *   data: {.} ou null,
+ *   data: {...} ou null,
  *   errors: [ { code, message, details } ]
  * }
- *
- * Esta função:
- *  - dispara erros quando success = false
- *  - retorna json.data quando tudo dá certo
- *
- * @param {Object} params
- * @param {string} params.action
- * @param {Object} [params.payload]
- * @returns {Promise<any>} json.data
  */
-export async function callApi({ action, payload = {} }) {
-  if (!API_URL || API_URL === "SUA_URL_DO_WEBAPP") {
-    console.warn(
-      "%c[PRONTIO] API_URL não configurada em core/api.js",
-      "color:#b91c1c;font-weight:bold"
-    );
-  }
 
-  const body = { action, payload };
-
-  let resposta;
+/**
+ * Ponto de entrada HTTP (POST)
+ * Configure como Web App no Apps Script.
+ */
+function doPost(e) {
   try {
-    // IMPORTANTE PARA CORS:
-    // - usamos Content-Type "text/plain;charset=utf-8" (tipo simples)
-    // - isso evita o preflight OPTIONS na maioria dos navegadores
-    //   e deixa o Apps Script tratar normalmente em e.postData.contents.
-    resposta = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      body: JSON.stringify(body),
-    });
-  } catch (erro) {
-    console.error("[PRONTIO] Erro de rede ao chamar a API:", erro);
-    const e = new Error(
-      "Não foi possível conectar ao servidor (verifique se o WebApp está publicado e se a URL está correta)."
-    );
-    e.code = "NETWORK_ERROR";
-    throw e;
-  }
+    var body = parseRequestBody_(e); // { action, payload }
 
-  if (!resposta.ok) {
-    const texto = await resposta.text();
-    console.error(`[PRONTIO] Erro HTTP ${resposta.status}:`, texto);
-    const e = new Error(
-      `Erro na comunicação com a API (HTTP ${resposta.status}).`
-    );
-    e.code = "HTTP_ERROR";
-    throw e;
-  }
+    var action = body.action || null;
+    var payload = body.payload || {};
 
-  let json;
-  try {
-    json = await resposta.json();
-  } catch (erro) {
-    console.error("[PRONTIO] Erro ao converter JSON:", erro);
-    const raw = await resposta.text();
-    console.error("[PRONTIO] Conteúdo recebido:", raw);
-    const e = new Error("Resposta da API em formato inesperado.");
-    e.code = "INVALID_JSON";
-    throw e;
-  }
+    if (!action) {
+      return buildErrorResponse('NO_ACTION', 'Nenhuma ação informada.');
+    }
 
-  if (!json.success) {
-    const err = (json.errors && json.errors[0]) || {};
-    const e = new Error(err.message || "Erro desconhecido na API.");
-    if (err.code) e.code = err.code;
-    if (err.details) e.details = err.details;
-    console.error("[PRONTIO] Erro retornado pela API:", err);
-    throw e;
-  }
+    var result;
 
-  return json.data;
+    // --- ROTEAMENTO POR PREFIXO DE AÇÃO ---
+
+    if (action.indexOf('Agenda_') === 0) {
+      // Módulo Agenda.gs (consultas, bloqueios, etc.)
+      result = handleAgendaAction(action, payload);
+
+    } else if (action.indexOf('AgendaConfig_') === 0) {
+      // Módulo AgendaConfig.gs (configuração)
+      result = handleAgendaConfigAction(action, payload);
+
+    } else if (
+      action.indexOf('Pacientes_') === 0 ||
+      action.indexOf('Pacientes.') === 0
+    ) {
+      // Módulo Pacientes.gs
+      result = handlePacientesAction(action, payload);
+
+    } else {
+      return buildErrorResponse('UNKNOWN_ACTION', 'Ação desconhecida: ' + action);
+    }
+
+    if (typeof result === 'undefined') {
+      return buildErrorResponse('EMPTY_RESULT', 'Ação não retornou dados.');
+    }
+
+    // Aqui result é APENAS o "data" (objeto / array) retornado pelo módulo.
+    return buildSuccessResponse(result);
+
+  } catch (err) {
+    // Se o módulo lançou um erro com code/message próprios
+    if (err && err.code) {
+      return buildErrorResponse(
+        err.code,
+        err.message || 'Erro na operação.',
+        err.details || null
+      );
+    }
+
+    // Erros genéricos/inesperados
+    Logger.log('Erro inesperado em doPost: ' + err + '\n' + (err.stack || ''));
+    return buildErrorResponse('SERVER_ERROR', 'Erro interno na API.', String(err));
+  }
 }
 
-// Expor globalmente (útil para debug no console do DevTools)
-if (typeof window !== "undefined") {
-  window.callApi = callApi;
+/**
+ * Opcional: GET para teste rápido no navegador.
+ */
+function doGet(e) {
+  var msg =
+    'PRONTIO API ativa.\n' +
+    'Use requisições POST com JSON no corpo no formato:\n\n' +
+    '{ "action": "Agenda_ListarDia", "payload": { "data": "2025-01-01" } }';
+
+  return ContentService
+    .createTextOutput(msg)
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
+/**
+ * Faz o parse do corpo da requisição.
+ * Compatível com:
+ *  - Content-Type: application/json
+ *  - Content-Type: text/plain;charset=utf-8 (usado no front)
+ */
+function parseRequestBody_(e) {
+  if (!e || !e.postData || !e.postData.contents) {
+    return { action: null, payload: {} };
+  }
+
+  var raw = e.postData.contents;
+  if (!raw) {
+    return { action: null, payload: {} };
+  }
+
+  try {
+    var obj = JSON.parse(raw);
+    if (typeof obj !== 'object' || obj === null) {
+      throw new Error('JSON não é um objeto.');
+    }
+    return {
+      action: obj.action || null,
+      payload: obj.payload || {}
+    };
+  } catch (err) {
+    Logger.log('Erro ao fazer parse do JSON de entrada: ' + err + '\nRaw: ' + raw);
+    throw {
+      code: 'INVALID_JSON',
+      message: 'JSON de requisição inválido.',
+      details: String(err)
+    };
+  }
+}
+
+/**
+ * Monta uma resposta de sucesso padronizada.
+ */
+function buildSuccessResponse(data) {
+  var response = {
+    success: true,
+    data: data || null,
+    errors: []
+  };
+
+  return ContentService
+    .createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Monta uma resposta de erro padronizada.
+ */
+function buildErrorResponse(code, message, details) {
+  var response = {
+    success: false,
+    data: null,
+    errors: [
+      {
+        code: code || 'ERROR',
+        message: message || 'Erro não especificado.',
+        details: details || null
+      }
+    ]
+  };
+
+  return ContentService
+    .createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
 }
